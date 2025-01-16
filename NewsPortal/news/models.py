@@ -21,10 +21,9 @@ class Category(models.Model):
 class Post(models.Model):
     ARTICLE = 'AR'
     NEWS = 'NW'
-
     POST_TYPES = [
-        (ARTICLE, 'Article'),
-        (NEWS, 'News'),
+        (ARTICLE, 'Статья'),
+        (NEWS, 'Новость'),
     ]
 
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
@@ -66,3 +65,4 @@ class Comment(models.Model):
     def dislike(self):
         self.rating -= 1
         self.save()
+
