@@ -2,18 +2,26 @@
 {% load custom_filters %}
 
 {% block content %}
-<h1>Статьи</h1>
-<ul>
-    {% for post in news %}
-        <li>
-            <h2>{{ post.title|censor }}</h2>
-            <p>{{ post.created_at|date:"d.m.Y" }}</p>
-            <p>{{ post.text|slice:":20" }}...</p>
-            <a href="{% url 'news_detail' post.pk %}">Читать далее</a>
-        </li>
-    {% endfor %}
-</ul>
+    <header>
+        <nav>
+            <a href="/home/">Новости</a>
+            <a href="/news/home/">Донат</a>
+        </nav>
+    </header>
+<div style="text-align: center; padding: 2rem;">
+    <hr class="black-line">
+    <h2>Список всех публикаций</h2>
+    <hr class="black-line">
+    <img src="https://leader-id.storage.yandexcloud.net/event_photo/463918/653710034752e058239553.png" alt="Фото на главной" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;">
+    <hr class="black-line">
+    <ul style="list-style-type: none; padding: 0; text-align: left; display: inline-block;">
+        {% for post in news %}
+            <li style="margin-bottom: 15px;">
+                <a href="{% url 'news_detail' post.pk %}" style="text-decoration: none; color: #007bff; font-weight: bold;">{{ post.title|censor }}</a>
+                <p style="margin: 5px 0; color: #555;">{{ post.created_at|date:"d.m.Y" }} - {{ post.text|censor|slice:":20" }}...</p>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+<hr class="black-line">
 {% endblock %}
-
-
-

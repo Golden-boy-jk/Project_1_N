@@ -6,17 +6,16 @@ register = template.Library()
 
 @register.filter(name='censor')
 def censor(value):
-    if not isinstance(value, str):
-        raise ValueError("Фильтр 'censor' может применяться только к строковым значениям.")
-
-    # Список запрещённых слов
-    forbidden_words = ['редиска', 'плохой', 'негодяй']
+    unwanted_words = ['плохое_слово1', 'плохое_слово2', 'редиска', 'овощ', 'дурак', 'дурашка',
+                      'какашка']  # Добавьте свои нежелательные слова
 
     def replace_word(match):
         word = match.group()
-        return word[0] + '*' * (len(word) - 1)
+        return '*' * len(word)
 
-    pattern = r'\b(?:' + '|'.join(forbidden_words) + r')\b'
-    censored_text = re.sub(pattern, replace_word, value, flags=re.IGNORECASE)
-    return censored_text
+    # Создаем регулярное выражение, игнорирующее регистр
+    pattern = re.compile(r'\b(' + '|'.join(re.escape(word) for word in unwanted_words) + r')\b', flags=re.IGNORECASE)
 
+    # Заменяем найденные слова на звёздочки
+    censored_value = pattern.sub(replace_word, value)
+    return censored_value
