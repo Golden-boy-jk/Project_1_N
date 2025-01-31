@@ -1,0 +1,14 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 2rem;">
+    <h2>{% if object %}Редактирование{% else %}Создание{% endif %} статьи</h2>
+    <hr class="black-line">
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" style="padding: 0.5rem;">Сохранить</button>
+    </form>
+</div>
+{% endblock %}

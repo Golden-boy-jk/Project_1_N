@@ -27,7 +27,7 @@ class Post(models.Model):
     ]
 
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    type = models.CharField(max_length=2, choices=POST_TYPES, default=ARTICLE)
+    type = models.CharField(max_length=20, choices=POST_TYPES, default=ARTICLE)
     created_at = models.DateTimeField(auto_now_add=True)
     categories = models.ManyToManyField(Category, through='PostCategory')
     title = models.CharField(max_length=255)

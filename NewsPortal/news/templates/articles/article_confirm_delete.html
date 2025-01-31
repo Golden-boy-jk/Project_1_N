@@ -1,0 +1,16 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 2rem;">
+    <h2>Подтвердите удаление статьи</h2>
+    <hr class="black-line">
+
+    <p>Вы уверены, что хотите удалить статью "{{ object.title }}"?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" style="padding: 0.5rem;">Удалить</button>
+        <a href="{% url 'news_list' %}" style="padding: 0.5rem;">Отмена</a>
+    </form>
+</div>
+{% endblock %}
