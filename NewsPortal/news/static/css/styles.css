@@ -10833,3 +10833,7 @@ textarea.form-control-lg {
 .btn:hover {
     opacity: 0.8;
 }
+.navbar-nav .dropdown:hover .dropdown-menu {
+    display: block;
+    margin-top: 0; /* Убираем лишний отступ */
+}

@@ -1,53 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Новостной портал</title>
+
+    <!-- Подключение шрифтов -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="" />
-        <meta name="author" content="" />
-        <title> Новостной портал </title>
-        <!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
-        <!-- Core theme CSS (includes Bootstrap)-->
-        {% load static %}
-        <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
-    </head>
-    <body>
-        <!-- Responsive navbar-->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-            <div class="container">
-                <a class="navbar-brand" href="#">News Portal</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
+
+    <!-- Подключение статики -->
+    {% load static %}
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'assets/favicon.ico' %}" />
+
+    <style>
+        /* Открываем меню при наведении */
+        .navbar-nav .dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0; /* Убираем лишний отступ */
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигационное меню -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
                         <a class="btn btn-success me-3" href="{% url 'news_create' %}">Добавить новость</a>
                         <a class="btn btn-success me-3" href="{% url 'article_create' %}">Добавить статью</a>
-                        <a class="btn btn-success me-3" href="{% url 'news_list' %}">Статьи</a>
+                        <a class="btn btn-success me-3" href="{% url 'news_list' %}">Все публикации</a>
                         <a class="btn btn-success me-3" href="{% url 'news_search' %}">Поиск</a>
-                        </li>
-                        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Донат</a></li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Выбрать раздел</a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="#">Action</a></li>
-                                <li><a class="dropdown-item" href="#">Another action</a></li>
-                                <li><hr class="dropdown-divider" /></li>
-                                <li><a class="dropdown-item" href="#">Something else here</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-        <!-- Page content-->
-        <div class="container">
-            <div class="text-center mt-5">
-                {% block content %}
-                {{ flatpage.content }}
-                {% endblock content %}
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Донат</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Разделы</a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="{% url 'news_list' %}">Новости</a></li>
+                            <li><a class="dropdown-item" href="{% url 'news_search' %}">Поиск по сайту</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
-    </body>
+    </nav>
+
+    <!-- Основное содержимое страницы -->
+    <div class="container text-center mt-5">
+        {% block content %}
+        {{ flatpage.content }}
+        {% endblock content %}
+    </div>
+</body>
 </html>

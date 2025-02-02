@@ -3,7 +3,7 @@ from django.db import models
 
 
 class Author(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
     rating = models.IntegerField(default=0)
 
 
@@ -26,13 +26,22 @@ class Post(models.Model):
         (NEWS, 'Новость'),
     ]
 
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, blank=True)
     type = models.CharField(max_length=20, choices=POST_TYPES, default=ARTICLE)
     created_at = models.DateTimeField(auto_now_add=True)
     categories = models.ManyToManyField(Category, through='PostCategory')
     title = models.CharField(max_length=255)
     text = models.TextField()
     rating = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.title
+
+    def is_article(self):
+        return self.type == self.ARTICLE
+
+    def is_news(self):
+        return self.type == self.NEWS
 
     def like(self):
         self.rating += 1
