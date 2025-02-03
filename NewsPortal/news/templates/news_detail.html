@@ -14,7 +14,7 @@
         <hr class="black-line">
         <p style="font-style: italic; color: #555;">
             Дата публикации: {{ post.created_at|date:"d.m.Y" }} |
-            Автор: {% if post.author %}{{ post.author.username }}{% else %}Не указан{% endif %}
+            Автор: {% if post.author %}{{ post.author.user.username }}{% else %}Не указан{% endif %}
         </p>
         <p>{{ post.text|censor }}</p>
         <hr class="black-line">

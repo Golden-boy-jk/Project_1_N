@@ -4,6 +4,7 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404
+from datetime import datetime
 
 from .models import Post
 
@@ -12,7 +13,7 @@ def home(request):
 
 def news_list(request):
     news = Post.objects.all().order_by('-created_at')
-    paginator = Paginator(news, 10)
+    paginator = Paginator(news, 5)
 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -39,7 +40,7 @@ def news_search(request):
         filters &= Q(type=post_type)  # Фильтрация по типу поста (AR или NW)
 
     news = Post.objects.filter(filters).order_by('-created_at')
-    paginator = Paginator(news, 10)
+    paginator = Paginator(news, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'news/news_search.html', {'page_obj': page_obj})
