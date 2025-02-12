@@ -1,4 +1,5 @@
 from django.urls import path
+from . import views
 from .views import (news_list, news_detail, news_search, home,
                     PostCreateView, PostDeleteView, PostUpdateView)  # Используем одно представление для создания постов
 
@@ -14,4 +15,6 @@ urlpatterns = [
 
     path('<int:pk>/edit/', PostUpdateView.as_view(), name='post_edit'),
     path('<int:pk>/delete/', PostDeleteView.as_view(), name='post_delete'),
+    path('logout/', views.custom_logout, name='logout'),
+    path('home/', views.home, name='home'),
 ]

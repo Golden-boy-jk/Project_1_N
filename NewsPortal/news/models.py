@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
-
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
 
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
@@ -20,6 +21,9 @@ class Author(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=128, unique=True)
 
+    def __str__(self):
+        return self.name
+
 
 class Post(models.Model):
     ARTICLE = 'AR'
@@ -29,13 +33,19 @@ class Post(models.Model):
         (NEWS, 'Новость'),
     ]
 
-    author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, blank=True)
-    type = models.CharField(max_length=20, choices=POST_TYPES, default=ARTICLE)
+    author = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True, blank=True, related_name="posts")
+    type = models.CharField(max_length=2, choices=POST_TYPES, default=ARTICLE)
     created_at = models.DateTimeField(auto_now_add=True)
-    categories = models.ManyToManyField(Category, through='PostCategory')
+    categories = models.ManyToManyField(Category, through='PostCategory', related_name="posts")
     title = models.CharField(max_length=255)
     text = models.TextField()
     rating = models.IntegerField(default=0)
+
+    class Meta:
+        permissions = [
+            ("can_edit_post", "Can edit post"),
+            ("can_create_post", "Can create post"),
+        ]
 
     def __str__(self):
         return self.title
@@ -55,17 +65,20 @@ class Post(models.Model):
         self.save()
 
     def preview(self):
-        return f'{self.text[:124]}...'
+        return f'{self.text[:124]}...' if len(self.text) > 124 else self.text
 
 
 class PostCategory(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="post_categories")
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="category_posts")
+
+    def __str__(self):
+        return f"{self.post.title} - {self.category.name}"
 
 
 class Comment(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     rating = models.IntegerField(default=0)
@@ -77,4 +90,7 @@ class Comment(models.Model):
     def dislike(self):
         self.rating -= 1
         self.save()
+
+    def __str__(self):
+        return f"Комментарий от {self.user.username} к {self.post.title}"
 
