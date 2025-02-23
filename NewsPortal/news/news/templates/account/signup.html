@@ -1,0 +1,29 @@
+{% extends 'default.html' %}
+
+{% block content %}
+    <div style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); text-align: center; background: #fff;">
+        <h2>Регистрация</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div style="text-align: left;">
+                {% for field in form %}
+                    <div style="margin-bottom: 15px; display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 5px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small style="color: #6c757d; margin-top: 5px;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <p style="color: red; font-size: 12px;">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="submit" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px;">
+                Зарегистрироваться
+            </button>
+        </form>
+    </div>
+{% endblock %}
+
+
