@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Еженедельная рассылка</title>
+</head>
+<body>
+    <h1>Здравствуйте, {{ user.username }}</h1>
+    <h2>Новые статьи в категории "{{ category.name }}"</h2>
+    <ul>
+        {% for post_link in post_links %}
+            <li>{{ post_link|safe }}</li>
+        {% endfor %}
+    </ul>
+    <p>С уважением,<br>Команда NewsPortal</p>
+</body>
+</html>
