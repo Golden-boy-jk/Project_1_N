@@ -156,5 +156,5 @@ EMAIL_HOST_PASSWORD = 'ключ который идёт в начале при �
 DEFAULT_FROM_EMAIL = 'полностью почту'
 SERVER_EMAIL = EMAIL_HOST_USER
 SITE_URL = "http://127.0.0.1:8000"
-ADMINS = [('Admin', 'game.kuzin@gmail.com'),]
+ADMINS = [('Admin', 'почту для админа'),]
 # MANAGERS = [('Manager', 'почто менеджера')]
