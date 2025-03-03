@@ -1,44 +1,38 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy, reverse
-from django.views.generic import CreateView, DeleteView, UpdateView
 from django.core.paginator import Paginator, EmptyPage
 from django.db.models import Q
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import logout
-from django.utils.decorators import method_decorator
-from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.contrib.sites.models import Site
 from .models import Post, Category
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.models import Group
+from django.views.generic import CreateView, UpdateView, DeleteView, DetailView
+from django.utils.decorators import method_decorator
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.decorators import login_required
-from .models import Category  # Импортируем модель Category
-from django.contrib.auth.models import Group
 
-
-# 1. Функция для отправки письма всем подписчикам категории
 def send_new_post_email(post):
     """Отправка письма всем подписчикам категории"""
     category = post.categories.first()  # Получаем первую категорию поста
-    subscribers = category.subscribers.values_list('email', flat=True)  # Получаем email подписчиков категории
+    subscribers = category.subscribers.values_list('email', flat=True)  # Получаем email подписчиков
 
-    if not subscribers:  # Если нет подписчиков, то ничего не отправляем
+    if not subscribers:
         return
 
-    current_site = Site.objects.get_current()  # Получаем текущий сайт
-    post_url = f"http://{current_site.domain}{reverse('news_detail', args=[post.id])}"  # Сформировать URL поста
+    post_url = f"http://127.0.0.1:8000{reverse('news_detail', args=[post.id])}"
+    subject = f"Новая статья в категории {category.name}: {post.title}"
+    text_content = f"Прочитайте новый пост: {post.title}\n{post_url}"
+    html_content = render_to_string('email/new_post_email.html', {'post': post, 'post_url': post_url})
 
-    subject = f"Новая статья в категории {category.name}: {post.title}"  # Тема письма
-    text_content = f"Прочитайте новый пост: {post.title}\n{post_url}"  # Текстовое содержимое письма
-    html_content = render_to_string('email/new_post_email.html', {'post': post, 'post_url': post_url})  # HTML содержимое письма
-
-    msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, list(subscribers))  # Создаем сообщение
-    msg.attach_alternative(html_content, "text/html")  # Прикрепляем альтернативное содержимое (HTML)
-    msg.send()  # Отправляем письмо
+    msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, subscribers)
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
 
 
 # 2. Функция для главной страницы
@@ -111,41 +105,28 @@ def news_search(request):
 
 
 # 9. Классы для создания, редактирования и удаления постов
-@method_decorator(login_required, name='dispatch')
-@method_decorator(permission_required('news.add_post', raise_exception=True), name='dispatch')
 class PostCreateView(PermissionRequiredMixin, CreateView):
     model = Post
     fields = ['title', 'text', 'categories']
     template_name = 'news/news_form.html'
     success_url = reverse_lazy('news_list')
-    permission_required = 'news.can_create_post'
 
-    def get_permission_required(self):
-        return ['news.can_create_post']
+    permission_required = 'news.can_create_post'
 
     def form_valid(self, form):
         if not self.request.user.groups.filter(name='authors').exists():
             messages.error(self.request, "У вас нет прав на создание поста.")
+            post_url = self.request.build_absolute_uri(reverse('news_detail', args=[self.object.pk]))
+            context = self.get_context_data()
+            context['post_url'] = post_url
             return redirect('home')
 
         form.instance.author = self.request.user.author
-        form.instance.type = self.get_post_type_from_url()
         post = form.save()
         send_new_post_email(post)  # Отправляем email после создания поста
         return super().form_valid(form)
 
-    def get_post_type_from_url(self):
-        if 'articles' in self.request.path:
-            return Post.ARTICLE
-        elif 'news' in self.request.path:
-            return Post.NEWS
-        raise Http404("Тип поста не указан")
 
-
-# 10. Классы для редактирования и удаления постов (аналогично классу PostCreateView)
-
-@method_decorator(login_required, name='dispatch')
-@method_decorator(permission_required('news.change_post', raise_exception=True), name='dispatch')
 class PostUpdateView(PermissionRequiredMixin, UpdateView):
     model = Post
     fields = ['title', 'text', 'categories']
@@ -156,27 +137,16 @@ class PostUpdateView(PermissionRequiredMixin, UpdateView):
         if not self.request.user.groups.filter(name='authors').exists():
             messages.error(self.request, "У вас нет прав на редактирование поста.")
             return redirect('home')
-
-        form.instance.type = self.get_post_type_from_url()
         return super().form_valid(form)
 
-    def get_post_type_from_url(self):
-        if 'articles' in self.request.path:
-            return Post.ARTICLE
-        elif 'news' in self.request.path:
-            return Post.NEWS
-        raise Http404("Тип поста не указан")
 
-
-@method_decorator(login_required, name='dispatch')
-@method_decorator(permission_required('news.delete_post', raise_exception=True), name='dispatch')
 class PostDeleteView(PermissionRequiredMixin, DeleteView):
     model = Post
     template_name = 'news/news_confirm_delete.html'
     success_url = reverse_lazy('news_list')
 
 
-# 11. Функции для подписки и отписки от категории
+# 10. Функции для подписки и отписки от категории
 @login_required
 def subscribe_category(request, category_id):
     """Подписываем пользователя на рассылку новостей категории"""
@@ -192,7 +162,7 @@ def unsubscribe_category(request, category_id):
     return redirect('category_detail', category_id=category.id)  # Перенаправляем на страницу категории
 
 
-# 12. Сигналы для уведомлений
+# 11. Сигналы для уведомлений
 @receiver(post_save, sender=Post)
 def notify_subscribers_on_new_post(sender, instance, created, **kwargs):
     """Отправляет уведомления подписчикам при публикации новой статьи"""
@@ -201,15 +171,22 @@ def notify_subscribers_on_new_post(sender, instance, created, **kwargs):
             category.notify_subscribers(instance)  # Уведомление для каждого подписчика категории
 
 
+# 12. Функция для того, чтобы стать автором
 @login_required
 def become_author(request):
     """Функция для того, чтобы стать автором"""
-    if not request.user.groups.filter(name='authors').exists():  # Проверяем, является ли пользователь автором
+    if not request.user.groups.filter(name='authors').exists():
         group = Group.objects.get(name='authors')  # Получаем группу 'authors'
         request.user.groups.add(group)  # Добавляем пользователя в группу 'authors'
         messages.success(request, "Теперь вы автор!")
     else:
         messages.info(request, "Вы уже стали автором!")
 
-    # После выполнения действия, возвращаем на профиль или главную
-    return redirect('profile.html')  # Замените 'profile' на нужный вам url
+    return redirect('profile')  # Перенаправляем на профиль пользователя
+
+
+# 13. Подробности поста
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'news/post_detail.html'
+    context_object_name = 'post'

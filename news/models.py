@@ -68,7 +68,7 @@ class Post(models.Model):
     rating = models.IntegerField(default=0)
 
     def get_absolute_url(self):
-        return reverse('news_detail', args=[self.id])
+        return reverse('news_detail', args=[str(self.pk)])
 
     class Meta:
         permissions = [
