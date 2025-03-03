@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-2za(ynv-&og)n8!%vk2e=u3=5-(k!6f*ip%0i%=m_1@2k37$4#
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.flatpages',
     'accounts',
     'django_apscheduler',
-    'news',
+    'news.apps.NewsConfig',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -145,16 +145,19 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
 ACCOUNT_LOGIN_METHODS = ['email']
-ACCOUNT_FORMS = {'sign': 'sign.models.BasicSignupForm'}
+ACCOUNT_FORMS = {'signup': 'sign.models.BasicSignupForm'}
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = 'smtp.yandex.ru'
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'полностью почту'
-EMAIL_HOST_PASSWORD = 'ключ который идёт в начале при регистрации приложения'  # пароль от почты
-DEFAULT_FROM_EMAIL = 'полностью почту'
+EMAIL_HOST_USER = 'Stormus2006@yandex.ru'
+EMAIL_HOST_PASSWORD = 'vzuiajwqmcatihfk'  # пароль от почты
+DEFAULT_FROM_EMAIL = 'Stormus2006@yandex.ru'
 SERVER_EMAIL = EMAIL_HOST_USER
-SITE_URL = "http://127.0.0.1:8000"
-ADMINS = [('Admin', 'почту для админа'),]
+SITE_URL = 'http://127.0.0.1:8000'
+ABSOLUTE_URL_OVERRIDES = {
+    'news.post': lambda o: f"/posts/{o.id}/"
+}
+ADMINS = [('Admin', 'game.kuzin@gmail.com'),]
 # MANAGERS = [('Manager', 'почто менеджера')]
