@@ -7,6 +7,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from .utils import generate_activation_link
+from django.urls import reverse
 
 @receiver(post_save, sender=User)
 def user_signals(sender, instance, created, **kwargs):
@@ -48,3 +49,22 @@ def add_permissions_to_authors_group(sender, **kwargs):
         )
         authors_group.permissions.add(permission)
 
+def send_new_post_notification(post, recipient):
+    """Отправляет email-уведомление подписчикам о новой статье"""
+    post_url = settings.SITE_URL + reverse('news_detail', args=[post.pk])
+
+    subject = f"Новая статья в категории {post.categories.first().name}"
+    context = {
+        'user': recipient,
+        'post': post,
+        'post_url': post_url,
+    }
+
+    html_message = render_to_string('email/new_post_email.html', context)
+    plain_message = f"Здравствуйте, {recipient.username}!\n\n" \
+                    f"В категории \"{post.categories.first().name}\" появилась новая статья: \"{post.title}\".\n" \
+                    f"Читать статью: {post_url}\n\n" \
+                    f"С уважением, команда NewsPortal"
+
+    send_mail(subject, plain_message, settings.DEFAULT_FROM_EMAIL,
+              [recipient.email], fail_silently=False, html_message=html_message)
