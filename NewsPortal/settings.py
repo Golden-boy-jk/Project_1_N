@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-2za(ynv-&og)n8!%vk2e=u3=5-(k!6f*ip%0i%=m_1@2k37$4#'
@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.yandex',
+    'django_celery_beat',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -145,14 +146,15 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
 ACCOUNT_LOGIN_METHODS = ['email']
-ACCOUNT_FORMS = {'signup': 'sign.models.BasicSignupForm'}
+# ACCOUNT_FORMS = {'signup': 'sign.models.BasicSignupForm'}
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = 'smtp.yandex.ru'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
+EMAIL_PORT = 587
+EMAIL_USE_SSL = False
+EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'почта'
-EMAIL_HOST_PASSWORD = 'единовременный пароль'  # пароль от почты
+EMAIL_HOST_PASSWORD = 'пароль от приложения'  # пароль от почты
 DEFAULT_FROM_EMAIL = 'почта'
 SERVER_EMAIL = EMAIL_HOST_USER
 SITE_URL = 'http://127.0.0.1:8000'
@@ -161,3 +163,24 @@ ABSOLUTE_URL_OVERRIDES = {
 }
 ADMINS = [('Admin', 'game.kuzin@gmail.com'),]
 # MANAGERS = [('Manager', 'почто менеджера')]
+
+CELERY_BROKER_URL = 'redis://:ваш пароль-11985.c135.eu-central-1-1.ec2.redns.redis-cloud.com:11985'
+CELERY_RESULT_BACKEND = 'redis://:ваш пароль-11985.c135.eu-central-1-1.ec2.redns.redis-cloud.com:11985'
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+CELERY_BROKER_CONNECTION_TIMEOUT = 30
+
+
+CELERY_BEAT_SCHEDULE = {
+    'send_weekly_newsletter': {
+        'task': 'news.tasks.send_weekly_newsletter',  # Путь к вашей задаче
+        'schedule': crontab(hour=8, minute=0, day_of_week=1),  # Понедельник, 8:00 утра
+    },
+}
+
