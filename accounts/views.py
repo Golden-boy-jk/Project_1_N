@@ -2,34 +2,33 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.contrib import messages
-from django.conf import settings
-from django.urls import reverse
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
-from django.http import HttpResponse
-from .utils import generate_activation_link
 
 
 @login_required
 def profile(request):
-    return render(request, 'accounts/profile.html')
+    return render(request, "accounts/profile.html")
 
 
 def become_author(request):
     """Добавляет пользователя в группу 'authors'"""
-    authors_group, _ = Group.objects.get_or_create(name='authors')
-    if not request.user.groups.filter(name='authors').exists():
+    authors_group, _ = Group.objects.get_or_create(name="authors")
+    if not request.user.groups.filter(name="authors").exists():
         request.user.groups.add(authors_group)
-    return redirect('profile')  # Перенаправление на профиль
+    return redirect("profile")  # Перенаправление на профиль
 
 
 signer = TimestampSigner()
+
 
 def activate_account(request, signed_value):
     """Активация аккаунта по временной ссылке"""
     try:
         # Расшифровка с проверкой на максимальный срок действия (например, 1 час)
-        user_id = signer.unsign(signed_value, max_age=3600)  # max_age в секундах (1 час)
+        user_id = signer.unsign(
+            signed_value, max_age=3600
+        )  # max_age в секундах (1 час)
         user = User.objects.get(id=user_id)
 
         # Проверка, активирован ли уже аккаунт

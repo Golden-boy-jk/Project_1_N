@@ -3,6 +3,7 @@ from django.conf import settings
 
 signer = TimestampSigner()
 
+
 def generate_activation_link(user):
     """Генерирует временную ссылку для активации аккаунта"""
     signed_value = signer.sign(user.id)
