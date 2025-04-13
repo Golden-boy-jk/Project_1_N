@@ -1,0 +1,169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-04-07 22:51+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+#: .\news\forms.py:15
+msgid "Выберите часовой пояс"
+msgstr ""
+
+#: .\news\fpages\admin.py:12
+msgid "Advanced options"
+msgstr ""
+
+#: .\news\templates\category_list.html:5
+msgid "Категории"
+msgstr ""
+
+#: .\news\templates\category_list.html:16
+msgid "Отписаться"
+msgstr ""
+
+#: .\news\templates\category_list.html:21
+msgid "Подписаться"
+msgstr ""
+
+#: .\news\templates\category_list.html:26
+msgid "Чтобы подписаться на категорию, нужно"
+msgstr ""
+
+#: .\news\templates\category_list.html:27
+msgid "войти"
+msgstr ""
+
+#: .\news\templates\category_list.html:32
+msgid "Категории пока не добавлены."
+msgstr ""
+
+#: .\news\templates\default.html:9 .\news\templates\flatpages\default.html:10
+msgid "Новостной портал"
+msgstr ""
+
+#: .\news\templates\default.html:81 .\news\templates\flatpages\default.html:55
+#: .\news\templates\news_detail.html:10 .\news\templates\news_list.html:16
+msgid "Новости"
+msgstr ""
+
+#: .\news\templates\default.html:82
+msgid "Статьи"
+msgstr ""
+
+#: .\news\templates\default.html:83
+msgid "Вход"
+msgstr ""
+
+#: .\news\templates\default.html:89 .\news\templates\news\news_form.html:5
+#: .\news\templates\news_list.html:10
+msgid "Русский"
+msgstr ""
+
+#: .\news\templates\default.html:90 .\news\templates\news\news_form.html:5
+#: .\news\templates\news_list.html:11
+msgid "English"
+msgstr ""
+
+#: .\news\templates\default.html:99
+msgid "© 2025 News Portal | Все права защищены"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:46
+msgid "Добавить новость"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:47
+msgid "Добавить статью"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:48
+msgid "Все публикации"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:49
+msgid "Поиск"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:50
+msgid "Вход/Регистрация"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:53
+msgid "Разделы"
+msgstr ""
+
+#: .\news\templates\flatpages\default.html:56
+msgid "Поиск по сайту"
+msgstr ""
+
+#: .\news\templates\news\news_form.html:9
+msgid "Редактировать новость"
+msgstr ""
+
+#: .\news\templates\news\news_form.html:9
+msgid "Создать новость"
+msgstr ""
+
+#: .\news\templates\news\news_form.html:13
+msgid "Сохранить"
+msgstr ""
+
+#: .\news\templates\news\news_form.html:15
+msgid "Назад к новостям"
+msgstr ""
+
+#: .\news\templates\news_detail.html:20
+msgid "Дата публикации:"
+msgstr ""
+
+#: .\news\templates\news_detail.html:22
+msgid "Автор:"
+msgstr ""
+
+#: .\news\templates\news_detail.html:26
+msgid "Не указан"
+msgstr ""
+
+#: .\news\templates\news_list.html:22
+msgid "Список всех публикаций"
+msgstr ""
+
+#: .\news\templates\news_list.html:26
+msgid "Фото на главной"
+msgstr ""
+
+#: .\news\templates\news_list.html:50
+msgid "Страницы:"
+msgstr ""
+
+#: .\news\templates\news_list.html:52
+msgid "Первая"
+msgstr ""
+
+#: .\news\templates\news_list.html:53
+msgid "Назад"
+msgstr ""
+
+#: .\news\templates\news_list.html:67
+msgid "Вперёд"
+msgstr ""
+
+#: .\news\templates\news_list.html:68
+msgid "Последняя"
+msgstr ""
+
+#: .\news\views.py:270
+msgid "Hello World"
+msgstr ""
