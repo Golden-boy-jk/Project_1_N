@@ -291,14 +291,14 @@ EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_PORT = 587
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "stormus2006@yandex.ru"
-EMAIL_HOST_PASSWORD = "vzuiajwqmcatihfk"  # пароль от почты
-DEFAULT_FROM_EMAIL = "stormus2006@yandex.ru"
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""  # пароль от почты
+DEFAULT_FROM_EMAIL = ""
 SERVER_EMAIL = EMAIL_HOST_USER
 SITE_URL = "http://127.0.0.1:8000"
 ABSOLUTE_URL_OVERRIDES = {"news.post": lambda o: f"/posts/{o.id}/"}
 ADMINS = [
-    ("Admin", "game.kuzin@gmail.com"),
+    ("Admin", ""),
 ]
 # MANAGERS = [('Manager', 'почто менеджера')]
 
