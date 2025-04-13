@@ -5,16 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('news', '0003_alter_post_options'),
+        ("news", "0003_alter_post_options"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='category',
-            name='subscribers',
-            field=models.ManyToManyField(blank=True, related_name='subscribed_categories', to=settings.AUTH_USER_MODEL),
+            model_name="category",
+            name="subscribers",
+            field=models.ManyToManyField(
+                blank=True,
+                related_name="subscribed_categories",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

@@ -1,5 +1,6 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,15 +8,15 @@
 </head>
 <body>
     <h1>{{ post.title }}</h1>
-    <p><strong>Автор:</strong> {{ post.author.username }}</p>
-    <p><strong>Категория:</strong> {{ post.categories.first.name }}</p>
-    <p><strong>Дата публикации:</strong> {{ post.created_at|date:"d M Y" }}</p>
+    <p><strong>{% trans "Автор:" %}</strong> {{ post.author.username }}</p>
+    <p><strong>{% trans "Категория:" %}</strong> {{ post.categories.first.name }}</p>
+    <p><strong>{% trans "Дата публикации:" %}</strong> {{ post.created_at|date:"d M Y" }}</p>
 
     <div>
-        <h2>Текст статьи:</h2>
+        <h2>{% trans "Текст статьи:" %}</h2>
         <p>{{ post.text }}</p>
     </div>
 
-    <a href="{% url 'news_list' %}">Вернуться к списку новостей</a>
+    <a href="{% url 'news_list' %}">{% trans "Вернуться к списку новостей" %}</a>
 </body>
 </html>

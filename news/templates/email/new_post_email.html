@@ -4,17 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Новая статья</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .container {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 24px;
+        }
+        p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        strong {
+            color: #007bff;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        a {
+            color: #fff;
+            background-color: #007bff;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 16px;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
-    <p>Здравствуйте, {{ user.username }}!</p>
+    <div class="container">
+        <h1>Здравствуйте, {{ user.username }}!</h1>
 
-    <p>В категории "<strong>{{ post.categories.first.name }}</strong>" появилась новая статья: "<strong>{{ post.title }}</strong>".</p>
+        <p>В категории "<strong>{{ post.categories.first.name }}</strong>" появилась новая статья: "<strong>{{ post.title }}</strong>".</p>
 
-    <p>Чтобы прочитать статью, перейдите по следующей ссылке:</p>
+        <p>Чтобы прочитать статью, перейдите по следующей ссылке:</p>
 
-    <p><a href="{{ post_url }}" target="_blank">Читать статью</a></p>
+        <div class="button-container">
+            <a href="{{ post_url }}" target="_blank">Читать статью</a>
+        </div>
 
-    <p>С уважением, команда NewsPortal</p>
+        <footer>
+            <p>С уважением, команда NewsPortal</p>
+        </footer>
+    </div>
 </body>
 </html>
-

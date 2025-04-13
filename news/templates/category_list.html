@@ -1,10 +1,11 @@
 {% extends 'default.html' %}
+{% load i18n %}
 
 {% block content %}
-    <h1>Категории</h1>
-    <ul>
+    <h1>{% trans "Категории" %}</h1>
+    <ul style="list-style-type: none; padding: 0;">
         {% for category in categories %}
-            <li>
+            <li style="margin-bottom: 2rem;">
                 <h2>{{ category.name }}</h2>
                 <p>{{ category.description }}</p>
 
@@ -12,18 +13,23 @@
                     {% if user in category.subscribers.all %}
                         <form action="{% url 'unsubscribe_category' category.id %}" method="post">
                             {% csrf_token %}
-                            <button type="submit">Отписаться</button>
+                            <button type="submit">{% trans "Отписаться" %}</button>
                         </form>
                     {% else %}
                         <form action="{% url 'subscribe_category' category.id %}" method="post">
                             {% csrf_token %}
-                            <button type="submit">Подписаться</button>
+                            <button type="submit">{% trans "Подписаться" %}</button>
                         </form>
                     {% endif %}
                 {% else %}
-                    <p>Чтобы подписаться на категорию, нужно <a href="{% url 'account_login' %}">войти</a>.</p>
+                    <p>
+                        {% trans "Чтобы подписаться на категорию, нужно" %}
+                        <a href="{% url 'account_login' %}">{% trans "войти" %}</a>.
+                    </p>
                 {% endif %}
             </li>
+        {% empty %}
+            <p>{% trans "Категории пока не добавлены." %}</p>
         {% endfor %}
     </ul>
 {% endblock %}

@@ -1,31 +1,52 @@
 {% extends 'default.html' %}
+{% load i18n %}
 {% load custom_filters %}
+{% load cache %}
+{% load tz %}
 
 {% block content %}
-    <header>
-        <nav>
-            <a href="/home/">Новости</a>
-        </nav>
-    </header>
-<div style="text-align: center; padding: 2rem;">
+
+<header>
+    <nav>
+        <a href="/home/">{% trans "Новости" %}</a>
+    </nav>
+</header>
+
+<div class="text-center p-5">
     <hr class="black-line">
-    <h2>Список всех публикаций</h2>
+    <h2>{% trans "Список всех публикаций" %}</h2>
     <hr class="black-line">
-    <img src="https://leader-id.storage.yandexcloud.net/event_photo/463918/653710034752e058239553.png" alt="Фото на главной" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;">
+
+    <img src="https://leader-id.storage.yandexcloud.net/event_photo/463918/653710034752e058239553.png"
+         alt="{% trans 'Фото на главной' %}"
+         style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;">
+
     <hr class="black-line">
-    <ul style="list-style-type: none; padding: 0; text-align: left; display: inline-block;">
-        {% for post in page_obj %}
-            <li style="margin-bottom: 15px;">
-                <a href="{% url 'news_detail' post.pk %}" style="text-decoration: none; color: #007bff; font-weight: bold;">{{ post.title|censor }}</a>
-                <p style="margin: 5px 0; color: #555;">{{ post.created_at|date:"d.m.Y" }} - {{ post.text|censor|slice:":20" }}...</p>
-            </li>
-        {% endfor %}
+
+    {% cache 300 post_list page_obj.number %}
+    <ul class="list-unstyled text-start d-inline-block">
+        {% timezone "Europe/Moscow" %}
+            {% for post in page_obj %}
+                <li class="mb-3">
+                    <a href="{% url 'news_detail' post.pk %}" class="text-decoration-none text-primary fw-bold">
+                        {{ post.title|censor }}
+                    </a>
+                    <p class="text-muted my-1">
+                        {{ post.created_at|date:"d.m.Y H:i" }} - {{ post.text|censor|slice:":20" }}...
+                    </p>
+                </li>
+            {% endfor %}
+        {% endtimezone %}
     </ul>
-        <div style="margin-top: 20px;">
-        <span>Страницы:</span>
+    {% endcache %}
+
+    <!-- Пагинация -->
+    <div class="mt-4">
+        <span>{% trans "Страницы:" %}</span>
+
         {% if page_obj.has_previous %}
-            <a href="?page=1">Первая</a>
-            <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+            <a href="?page=1">{% trans "Первая" %}</a>
+            <a href="?page={{ page_obj.previous_page_number }}">{% trans "Назад" %}</a>
         {% endif %}
 
         {% for page_num in page_obj.paginator.page_range %}
@@ -39,9 +60,10 @@
         {% endfor %}
 
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
+            <a href="?page={{ page_obj.next_page_number }}">{% trans "Вперёд" %}</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Последняя" %}</a>
         {% endif %}
     </div>
 </div>
+
 {% endblock %}

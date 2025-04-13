@@ -4,8 +4,11 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.core.cache import cache
+from django import forms
+import pytz
 
 
 class Author(models.Model):
@@ -15,7 +18,11 @@ class Author(models.Model):
     def update_rating(self):
         post_ratings = sum(post.rating * 3 for post in self.post_set.all())
         comment_ratings = sum(comment.rating for comment in self.user.comment_set.all())
-        post_comment_ratings = sum(comment.rating for post in self.post_set.all() for comment in post.comments.all())
+        post_comment_ratings = sum(
+            comment.rating
+            for post in self.post_set.all()
+            for comment in post.comments.all()
+        )
         self.rating = post_ratings + comment_ratings + post_comment_ratings
         self.save()
 
@@ -25,7 +32,9 @@ class Author(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=128, unique=True)
-    subscribers = models.ManyToManyField(User, related_name="subscribed_categories", blank=True)
+    subscribers = models.ManyToManyField(
+        User, related_name="subscribed_categories", blank=True
+    )
 
     def subscribe(self, user):
         """Подписывает пользователя на категорию."""
@@ -39,36 +48,51 @@ class Category(models.Model):
         """Уведомляет подписчиков о новой статье."""
         for subscriber in self.subscribers.all():
             subject = f"Новая статья в категории {self.name}"
-            message = render_to_string('email/new_post_email.html', {'user': subscriber, 'post': post, 'category': self})
+            message = (
+                render_to_string(
+                    "email/new_post_email.html",
+                    {"user": subscriber, "post": post, "category": self},
+                ),
+            )
+            html_message = render_to_string(
+                "email/new_post_email.html",
+                {"user": subscriber, "post": post, "category": self},
+            )
             send_mail(
                 subject,
                 message,
                 settings.DEFAULT_FROM_EMAIL,
                 [subscriber.email],
                 fail_silently=False,
+                html_message=html_message,
             )
 
     def __str__(self):
         return self.name
 
+
 class Post(models.Model):
-    ARTICLE = 'AR'
-    NEWS = 'NW'
+    ARTICLE = "AR"
+    NEWS = "NW"
     POST_TYPES = [
-        (ARTICLE, 'Статья'),
-        (NEWS, 'Новость'),
+        (ARTICLE, "Статья"),
+        (NEWS, "Новость"),
     ]
 
-    author = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True, blank=True, related_name="posts")
+    author = models.ForeignKey(
+        Author, on_delete=models.SET_NULL, null=True, blank=True, related_name="posts"
+    )
     type = models.CharField(max_length=2, choices=POST_TYPES, default=ARTICLE)
     created_at = models.DateTimeField(auto_now_add=True)
-    categories = models.ManyToManyField(Category, through='PostCategory', related_name="posts")
+    categories = models.ManyToManyField(
+        Category, through="PostCategory", related_name="posts"
+    )
     title = models.CharField(max_length=255)
     text = models.TextField()
     rating = models.IntegerField(default=0)
 
     def get_absolute_url(self):
-        return reverse('news_detail', args=[str(self.pk)])
+        return reverse("news_detail", args=[str(self.pk)])
 
     class Meta:
         permissions = [
@@ -88,12 +112,16 @@ class Post(models.Model):
         self.save()
 
     def preview(self):
-        return f'{self.text[:124]}...' if len(self.text) > 124 else self.text
+        return f"{self.text[:124]}..." if len(self.text) > 124 else self.text
 
 
 class PostCategory(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="post_categories")
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="category_posts")
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name="post_categories"
+    )
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE, related_name="category_posts"
+    )
 
     def __str__(self):
         return f"{self.post.title} - {self.category.name}"
@@ -124,3 +152,20 @@ def notify_subscribers_on_new_post(sender, instance, created, **kwargs):
     if created:
         for category in instance.categories.all():
             category.notify_subscribers(instance)
+
+
+@receiver(post_delete, sender=Post)
+def clear_article_cache(sender, instance, **kwargs):
+    cache.delete(f"article_{instance.pk}")
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    timezone = models.CharField(max_length=32, default="Europe/Moscow")
+
+    def __str__(self):
+        return f"Профиль пользователя {self.user.username}"
+
+
+class TimezoneForm(forms.Form):
+    timezone = forms.ChoiceField(choices=[(tz, tz) for tz in pytz.common_timezones])

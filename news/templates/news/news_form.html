@@ -1,11 +1,16 @@
 {% extends 'default.html' %}
+{% load i18n %}
+
+<div class="language-switcher">
+    <a href="?lang=ru">{% trans "Русский" %}</a> | <a href="?lang=en">{% trans "English" %}</a>
+</div>
 
 {% block content %}
-<h2>{% if object %}Редактировать новость{% else %}Создать новость{% endif %}</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить</button>
-</form>
-<a href="{% url 'news_list' %}">Назад к новостям</a>
+    <h2>{% if object %}{% trans "Редактировать новость" %}{% else %}{% trans "Создать новость" %}{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% trans "Сохранить" %}</button>
+    </form>
+    <a href="{% url 'news_list' %}">{% trans "Назад к новостям" %}</a>
 {% endblock %}

@@ -4,14 +4,18 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('news', '0002_alter_author_user_alter_comment_post_and_more'),
+        ("news", "0002_alter_author_user_alter_comment_post_and_more"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='post',
-            options={'permissions': [('can_edit_post', 'Can edit post'), ('can_create_post', 'Can create post')]},
+            name="post",
+            options={
+                "permissions": [
+                    ("can_edit_post", "Can edit post"),
+                    ("can_create_post", "Can create post"),
+                ]
+            },
         ),
     ]

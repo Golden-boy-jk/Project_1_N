@@ -10,7 +10,6 @@
     <form method="post">
         {% csrf_token %}
         <button type="submit" style="padding: 0.5rem;">Удалить</button>
-        <a href="{% url 'news_list' %}" style="padding: 0.5rem;">Отмена</a>
     </form>
 </div>
 {% endblock %}
