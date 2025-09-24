@@ -1,21 +1,33 @@
+import environ
 import os
 from pathlib import Path
 from celery.schedules import crontab
-from dotenv import load_dotenv  
 
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+env = environ.Env(DEBUG=(bool, False))
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-2za(ynv-&og)n8!%vk2e=u3=5-(k!6f*ip%0i%=m_1@2k37$4#"
 )
+DEBUG = env("DEBUG")
+SECRET_KEY = env("SECRET_KEY", default="insecure-secret-key")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default = ["127.0.0.1", "localhost"])
 
-DEBUG = os.getenv("DEBUG", "True") == "True"
+DATABASES = {
+    "default": env.db(default="sqlite:///db.sqlite3")
+}
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+# --- Celery ---
+CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE = "Europe/Moscow"
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 INSTALLED_APPS = [
     "modeltranslation",
@@ -80,14 +92,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "NewsPortal.wsgi.application"
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -111,14 +115,19 @@ LANGUAGES = [
     ("ru", "Russian"),
     ("en", "English"),
 ]
+
+
 LOCALE_PATHS = [
     os.path.join(BASE_DIR, "locale"), # Убран лишний 'NewsPortal'
 ]
 
-TIME_ZONE = "Europe/Moscow"
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="ru")
+TIME_ZONE = env("TIME_ZONE", default="Europe/Moscow")
 USE_I18N = True
 USE_TZ = True
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Static files
 STATIC_URL = "/static/"
@@ -153,8 +162,6 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-
-
 SOCIALACCOUNT_PROVIDERS = {
     "yandex": {
         "APP": {
@@ -168,13 +175,15 @@ SOCIALACCOUNT_PROVIDERS = {
 
 
 # Email settings
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.yandex.ru"
-EMAIL_PORT = 587
-EMAIL_USE_SSL = False
-EMAIL_USE_TLS = True
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 SERVER_EMAIL = EMAIL_HOST_USER
 SITE_URL = "http://127.0.0.1:8000"
@@ -183,13 +192,6 @@ ADMINS = [
     ("Admin", os.getenv("ADMIN_EMAIL")),
 ]
 
-# Celery settings
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_BEAT_SCHEDULE = {
     "send_weekly_newsletter": {
@@ -227,4 +229,4 @@ APSCHEDULER_JOB_DEFAULTS = {
     "coalesce": False,
     "max_instances": 3,
 }
-APSCHEDULER_TIMEZONE = TIME_ZONE # Использование TIME_ZONE проекта
+APSCHEDULER_TIMEZONE = TIME_ZONE 
