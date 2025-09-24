@@ -1,0 +1,29 @@
+{% extends 'default.html' %}
+
+{% block content %}
+    <h1>Категории</h1>
+    <ul>
+        {% for category in categories %}
+            <li>
+                <h2>{{ category.name }}</h2>
+                <p>{{ category.description }}</p>
+
+                {% if user.is_authenticated %}
+                    {% if user in category.subscribers.all %}
+                        <form action="{% url 'unsubscribe_category' category.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Отписаться</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'subscribe_category' category.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Подписаться</button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <p>Чтобы подписаться на категорию, нужно <a href="{% url 'account_login' %}">войти</a>.</p>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

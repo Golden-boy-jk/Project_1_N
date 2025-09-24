@@ -1,0 +1,49 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 2rem;">
+    <h2>Поиск новостей</h2>
+    <hr class="black-line">
+
+    <form method="get" style="margin-bottom: 20px;">
+        <input type="text" name="q" placeholder="Поиск по названию" value="{{ request.GET.q }}" style="padding: 0.5rem; width: 200px; margin-right: 10px;">
+        <input type="text" name="author" placeholder="Автор" value="{{ request.GET.author }}" style="padding: 0.5rem; width: 200px; margin-right: 10px;">
+        <input type="date" name="date_after" value="{{ request.GET.date_after }}" style="padding: 0.5rem; margin-right: 10px;">
+        <button type="submit" style="padding: 0.5rem;">Искать</button>
+    </form>
+
+    <ul style="list-style-type: none; padding: 0; text-align: left; display: inline-block;">
+        {% for post in page_obj %}
+            <li style="margin-bottom: 15px;">
+                <a href="{% url 'news_detail' post.pk %}" style="text-decoration: none; color: #007bff; font-weight: bold;">{{ post.title }}</a>
+                <p style="margin: 5px 0; color: #555;">{{ post.created_at|date:"d.m.Y" }} - {{ post.text|slice:":20" }}...</p>
+            </li>
+        {% empty %}
+            <p>Нет новостей по заданным критериям.</p>
+        {% endfor %}
+    </ul>
+
+    <div style="margin-top: 20px;">
+        <span>Страницы:</span>
+        {% if page_obj.has_previous %}
+            <a href="?page=1&{{ request.GET.urlencode }}">Первая</a>
+            <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Назад</a>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num >= page_obj.number|add:"-2" and page_num <= page_obj.number|add:"2" %}
+                {% if page_num == page_obj.number %}
+                    <strong>{{ page_num }}</strong>
+                {% else %}
+                    <a href="?page={{ page_num }}&{{ request.GET.urlencode }}">{{ page_num }}</a>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Вперёд</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">Последняя</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

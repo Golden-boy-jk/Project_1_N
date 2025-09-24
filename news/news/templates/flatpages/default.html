@@ -1,0 +1,82 @@
+{% load cache %}
+{% load static %}
+{% load i18n %}
+
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% trans "Новостной портал" %}</title>
+
+    <!-- Шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Стили -->
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
+
+    <!-- Иконка -->
+    <link rel="icon" type="image/x-icon" href="{% static 'assets/favicon.ico' %}" />
+
+    <style>
+        .navbar-nav .dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Форма смены языка -->
+    <form action="{% url 'set_language' %}" method="post" style="text-align: right; margin: 10px;">
+        {% csrf_token %}
+        <select name="language">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+        </select>
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <input type="submit" value="{% trans 'Сменить язык' %}">
+    </form>
+
+    <!-- Навигация (кэш 10 минут) -->
+    {% cache 600 navbar %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="btn btn-success me-3" href="{% url 'news_create' %}">{% trans "Добавить новость" %}</a>
+                        <a class="btn btn-success me-3" href="{% url 'article_create' %}">{% trans "Добавить статью" %}</a>
+                        <a class="btn btn-success me-3" href="{% url 'news_list' %}">{% trans "Все публикации" %}</a>
+                        <a class="btn btn-success me-3" href="{% url 'news_search' %}">{% trans "Поиск" %}</a>
+                        <a class="btn btn-success me-3" href="{% url 'account_login' %}">{% trans "Вход/Регистрация" %}</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">{% trans "Разделы" %}</a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="{% url 'news_list' %}">{% trans "Новости" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'news_search' %}">{% trans "Поиск по сайту" %}</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endcache %}
+
+    <!-- Контент -->
+    <div class="container text-center mt-5">
+        {% block content %}
+        {{ flatpage.content }}
+        {% endblock %}
+    </div>
+
+</body>
+</html>

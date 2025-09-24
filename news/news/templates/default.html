@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load tz %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% trans "Новостной портал" %}{% endblock %}</title>
+
+    <!-- Шрифт -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Стили -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-theme {
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .light-theme {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        header {
+            background-color: #343a40;
+            padding: 1rem 0;
+        }
+        nav {
+            display: flex;
+            justify-content: center;
+        }
+        nav a {
+            color: #ffffff;
+            text-decoration: none;
+            margin: 0 1rem;
+            font-size: 1.2rem;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        main {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        footer {
+            text-align: center;
+            padding: 1rem 0;
+            background-color: #343a40;
+            color: #ffffff;
+            margin-top: 2rem;
+        }
+        .language-switcher {
+            text-align: center;
+            margin-top: 1rem;
+        }
+    </style>
+
+    <!-- Скрипт смены темы -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const hour = new Date().getHours();
+            if (hour >= 19 || hour < 7) {
+                document.body.classList.add("dark-theme");
+            } else {
+                document.body.classList.add("light-theme");
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <header>
+        <nav>
+            <a href="/home/">{% trans "Новости" %}</a>
+            <a href="/articles/">{% trans "Статьи" %}</a>
+            <a href="/accounts/login/">{% trans "Вход" %}</a>
+        </nav>
+    </header>
+
+    <!-- Переключение языка -->
+  <form action="{% url 'set_language' %}" method="post">
+    {% csrf_token %}
+    <select name="language">
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+    </select>
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <input type="submit" value="{% trans 'Сменить язык' %}">
+</form>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>{% trans "© 2025 News Portal | Все права защищены" %}</p>
+    </footer>
+</body>
+</html>
