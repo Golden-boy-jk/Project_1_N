@@ -1,0 +1,22 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }}</title>
+</head>
+<body>
+    <h1>{{ post.title }}</h1>
+    <p><strong>{% trans "Автор:" %}</strong> {{ post.author.username }}</p>
+    <p><strong>{% trans "Категория:" %}</strong> {{ post.categories.first.name }}</p>
+    <p><strong>{% trans "Дата публикации:" %}</strong> {{ post.created_at|date:"d M Y" }}</p>
+
+    <div>
+        <h2>{% trans "Текст статьи:" %}</h2>
+        <p>{{ post.text }}</p>
+    </div>
+
+    <a href="{% url 'news_list' %}">{% trans "Вернуться к списку новостей" %}</a>
+</body>
+</html>

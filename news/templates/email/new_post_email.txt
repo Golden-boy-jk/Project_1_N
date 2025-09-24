@@ -1,0 +1,2 @@
+Новая публикация в категории "{{ category.name }}": "{{ post.title }}"
+Ссылка: {{ site_url }}{{ post.get_absolute_url }}

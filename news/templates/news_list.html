@@ -1,0 +1,69 @@
+{% extends 'default.html' %}
+{% load i18n %}
+{% load custom_filters %}
+{% load cache %}
+{% load tz %}
+
+{% block content %}
+
+<header>
+    <nav>
+        <a href="/home/">{% trans "Новости" %}</a>
+    </nav>
+</header>
+
+<div class="text-center p-5">
+    <hr class="black-line">
+    <h2>{% trans "Список всех публикаций" %}</h2>
+    <hr class="black-line">
+
+    <img src="https://leader-id.storage.yandexcloud.net/event_photo/463918/653710034752e058239553.png"
+         alt="{% trans 'Фото на главной' %}"
+         style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;">
+
+    <hr class="black-line">
+
+    {% cache 300 post_list page_obj.number %}
+    <ul class="list-unstyled text-start d-inline-block">
+        {% timezone "Europe/Moscow" %}
+            {% for post in page_obj %}
+                <li class="mb-3">
+                    <a href="{% url 'news_detail' post.pk %}" class="text-decoration-none text-primary fw-bold">
+                        {{ post.title|censor }}
+                    </a>
+                    <p class="text-muted my-1">
+                        {{ post.created_at|date:"d.m.Y H:i" }} - {{ post.text|censor|slice:":20" }}...
+                    </p>
+                </li>
+            {% endfor %}
+        {% endtimezone %}
+    </ul>
+    {% endcache %}
+
+    <!-- Пагинация -->
+    <div class="mt-4">
+        <span>{% trans "Страницы:" %}</span>
+
+        {% if page_obj.has_previous %}
+            <a href="?page=1">{% trans "Первая" %}</a>
+            <a href="?page={{ page_obj.previous_page_number }}">{% trans "Назад" %}</a>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num >= page_obj.number|add:"-2" and page_num <= page_obj.number|add:"2" %}
+                {% if page_num == page_obj.number %}
+                    <strong>{{ page_num }}</strong>
+                {% else %}
+                    <a href="?page={{ page_num }}">{{ page_num }}</a>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">{% trans "Вперёд" %}</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">{% trans "Последняя" %}</a>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подтверждение регистрации</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f8f9fa;
+            text-align: center;
+            padding: 40px;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: auto;
+        }
+        h1 {
+            color: #007bff;
+        }
+        p {
+            color: #333;
+            font-size: 16px;
+        }
+        a.button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+        a.button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Здравствуйте, {{ user.username|default:"Пользователь" }}!</h1>
+        <p>Спасибо за регистрацию в NewsPortal!</p>
+        <p>Для завершения регистрации, активируйте ваш аккаунт:</p>
+        {% if activation_link %}
+            <p>
+                <a href="{{ activation_link }}" class="button" target="_blank" rel="noopener noreferrer">
+                    Активировать аккаунт
+                </a>
+            </p>
+        {% else %}
+            <p style="color: red;">Ошибка: ссылка активации не найдена.</p>
+        {% endif %}
+        <p><b>Срок действия ссылки: 3 минуты.</b></p>
+        <p>Вы можете подписаться на разные категории рассылок и получать свежие новости.</p>
+        <p>Если у вас возникли вопросы, свяжитесь с нами:
+            <a href="mailto:support@newsportal.com">support@newsportal.com</a>
+        </p>
+        <p>С уважением, команда NewsPortal</p>
+    </div>
+</body>
+</html>
+

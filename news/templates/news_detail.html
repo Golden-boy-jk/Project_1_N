@@ -1,0 +1,32 @@
+{% extends 'default.html' %}
+{% load custom_filters %}
+{% load i18n %}
+{% load tz %}
+
+{% block content %}
+    <header>
+        <nav style="text-align: center; background-color: #343a40; padding: 1rem;">
+            <a href="{% url 'news_list' %}" style="color: white; text-decoration: none; margin: 0 1rem; font-size: 1.2rem;">
+                {% trans "Новости" %}
+            </a>
+        </nav>
+    </header>
+
+    <div style="text-align: center; padding: 2rem;">
+        <h2>{{ post.title|censor }}</h2>
+        <hr class="black-line">
+        <p style="font-style: italic; color: #555;">
+            {% timezone "Europe/Moscow" %}
+                {% trans "Дата публикации:" %} {{ post.created_at|date:"d.m.Y H:i" }} |
+            {% endtimezone %}
+            {% trans "Автор:" %}
+            {% if post.author %}
+                {{ post.author.user.username }}
+            {% else %}
+                {% trans "Не указан" %}
+            {% endif %}
+        </p>
+        <p>{{ post.text|censor }}</p>
+        <hr class="black-line">
+    </div>
+{% endblock %}
