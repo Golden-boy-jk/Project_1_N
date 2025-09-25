@@ -48,7 +48,7 @@ LOCAL_APPS = ["accounts", "news.apps.NewsConfig"]
 INSTALLED_APPS = [
     *DJANGO_APPS,
     *THIRD_PARTY_APPS,
-    "news.apps.NewsConfig",
+    *LOCAL_APPS,
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
