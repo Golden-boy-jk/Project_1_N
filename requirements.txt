@@ -10,6 +10,8 @@ django-allauth>=0.63
 # --- Background tasks ---
 celery>=5.4
 redis>=5.0
+django-modeltranslation>=0.18
+pytz>=2024.1
 
 # --- Environment variables ---
 django-environ>=0.11
