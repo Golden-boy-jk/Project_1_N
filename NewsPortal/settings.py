@@ -1,36 +1,31 @@
-import environ
 import os
 from pathlib import Path
+
+import environ
 from celery.schedules import crontab
 
-
+# --- Base paths / env ---------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env(DEBUG=(bool, False))
+env = environ.Env(
+    DEBUG=(bool, False),
+    TIME_ZONE=(str, "Europe/Moscow"),
+    LANGUAGE_CODE=(str, "ru"),
+)
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-2za(ynv-&og)n8!%vk2e=u3=5-(k!6f*ip%0i%=m_1@2k37$4#"
-)
-DEBUG = env("DEBUG")
+# --- Core ---------------------------------------------------------------------
+DEBUG = env("DEBUG", default=False)
 SECRET_KEY = env("SECRET_KEY", default="insecure-secret-key")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default = ["127.0.0.1", "localhost"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
 
-DATABASES = {
-    "default": env.db(default="sqlite:///db.sqlite3")
-}
+# --- Database -----------------------------------------------------------------
+DATABASES = {"default": env.db(default=f"sqlite:///{BASE_DIR}/db.sqlite3")}
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-# --- Celery ---
-CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE = "Europe/Moscow"
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-
+# --- Installed apps -----------------------------------------------------------
 INSTALLED_APPS = [
+    # i18n for models
     "modeltranslation",
+    # django core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -39,18 +34,23 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "django.contrib.flatpages",
+    # project apps
     "accounts",
-    "django_apscheduler",
     "news.apps.NewsConfig",
+    # scheduling / tasks
+    "django_apscheduler",
+    # auth / social
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.yandex",
+    # API
     "rest_framework",
 ]
 
 SITE_ID = 1
 
+# --- Middleware ---------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -61,16 +61,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
-    "allauth.account.middleware.AccountMiddleware", # Рекомендованное положение - после SessionMiddleware
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
-
-AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
-]
-
-
+# --- URLs / WSGI --------------------------------------------------------------
 ROOT_URLCONF = "NewsPortal.urls"
 
 TEMPLATES = [
@@ -91,142 +85,117 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "NewsPortal.wsgi.application"
 
-
+# --- Auth password validators -------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# Internationalization
-LANGUAGE_CODE = "ru"
+# --- i18n / l10n --------------------------------------------------------------
 MODELTRANSLATION_DEFAULT_LANGUAGE = "ru"
 LANGUAGES = [
     ("ru", "Russian"),
     ("en", "English"),
 ]
-
-
-LOCALE_PATHS = [
-    os.path.join(BASE_DIR, "locale"), # Убран лишний 'NewsPortal'
-]
-
 LANGUAGE_CODE = env("LANGUAGE_CODE", default="ru")
 TIME_ZONE = env("TIME_ZONE", default="Europe/Moscow")
 USE_I18N = True
 USE_TZ = True
+LOCALE_PATHS = [os.path.join(BASE_DIR, "locale")]
+
+# --- Static / Media -----------------------------------------------------------
+STATIC_URL = "/static/"
+# STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # включить на проде
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Static files
-STATIC_URL = "/static/"
-# STATIC_ROOT = os.path.join(BASE_DIR, 'static') # Раскомментируйте для продакшена
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-# Allauth settings
+# --- Django Allauth -----------------------------------------------------------
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/accounts/profile/"
 LOGOUT_REDIRECT_URL = "/news/"
-ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-ACCOUNT_SIGNUP_REDIRECT_URL = "/"
 
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-
-# ALLAUTH — современный синтаксис
-ACCOUNT_LOGIN_METHODS = {"email"}    
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*'] 
+# современный минимальный набор
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_VERIFICATION = 'optional'  
+
+ACCOUNT_EMAIL_VERIFICATION = "optional"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_SIGNUP_FIELDS = ["email", "password1", "password2"]
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-
 SOCIALACCOUNT_PROVIDERS = {
     "yandex": {
         "APP": {
-            "client_id": os.getenv("YANDEX_CLIENT_ID"),
-            "secret": os.getenv("YANDEX_SECRET"),
+            "client_id": env("YANDEX_CLIENT_ID", default=""),
+            "secret": env("YANDEX_SECRET", default=""),
         },
         "SCOPE": ["login:email"],
         "AUTH_PARAMS": {"force_confirm": "yes"},
     }
 }
 
-
-# Email settings
+# --- Email --------------------------------------------------------------------
 EMAIL_BACKEND = env(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
 )
 EMAIL_HOST = env("EMAIL_HOST", default="")
 EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
 SERVER_EMAIL = EMAIL_HOST_USER
 SITE_URL = "http://127.0.0.1:8000"
 
-ADMINS = [
-    ("Admin", os.getenv("ADMIN_EMAIL")),
-]
+ADMINS = [("Admin", env("ADMIN_EMAIL", default="admin@example.com"))]
 
+# --- Celery / Beat ------------------------------------------------------------
+REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_BEAT_SCHEDULE = {
     "send_weekly_newsletter": {
         "task": "news.tasks.send_weekly_newsletter",
-        "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Понедельник, 8:00
+        "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Пн, 08:00
     },
 }
 
-# Caching
+# --- Cache (file-based; можно заменить на Redis в проде) ----------------------
 CACHES = {
     "default": {
-        "TIMEOUT": 300,
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
         "LOCATION": os.path.join(BASE_DIR, "cache_files"),
+        "TIMEOUT": 300,
     }
 }
 
-
-# Django-apscheduler settings
-# ИСПРАВЛЕНО: Названия настроек обновлены
+# --- Django APScheduler -------------------------------------------------------
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25
 APSCHEDULER_JOBSTORES = {
-    "default": {
-        "type": "django_apscheduler.jobstores.DjangoJobStore",
-    }
+    "default": {"type": "django_apscheduler.jobstores.DjangoJobStore"}
 }
-APSCHEDULER_EXECUTORS = {
-    "default": {
-        "type": "threadpool",
-        "max_workers": 20,
-    }
-}
-APSCHEDULER_JOB_DEFAULTS = {
-    "coalesce": False,
-    "max_instances": 3,
-}
-APSCHEDULER_TIMEZONE = TIME_ZONE 
+APSCHEDULER_EXECUTORS = {"default": {"type": "threadpool", "max_workers": 20}}
+APSCHEDULER_JOB_DEFAULTS = {"coalesce": False, "max_instances": 3}
+APSCHEDULER_TIMEZONE = TIME_ZONE

@@ -1,18 +1,22 @@
-from django.db.models.signals import post_save, post_migrate
-from django.dispatch import receiver
-from django.contrib.auth.models import User, Group, Permission
-from django.contrib.contenttypes.models import ContentType
-from news.models import Post, Author  # Убедитесь, что Author импортирован
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
 from django.conf import settings
-from .utils import generate_activation_link
+from django.contrib.auth.models import Group, Permission, User
+from django.contrib.contenttypes.models import ContentType
+from django.core.mail import send_mail
+from django.db.models.signals import post_migrate, post_save
+from django.dispatch import receiver
+from django.template.loader import render_to_string
 from django.urls import reverse
+
+from news.models import Author, Post  # Убедитесь, что Author импортирован
+
+from .utils import generate_activation_link
 
 
 @receiver(post_save, sender=User)
 def user_signals(sender, instance, created, **kwargs):
-    """Обрабатывает создание нового пользователя: добавление в группу, создание профиля и отправка письма"""
+    """Обрабатывает создание нового пользователя:
+    добавление в группу, создание профиля и отправка письма"""
+
     if created:
         # Добавляем в группу 'common'
         common_group, _ = Group.objects.get_or_create(name="common")
@@ -75,7 +79,8 @@ def send_new_post_notification(post, recipient):
     html_message = render_to_string("email/new_post_email.html", context)
     plain_message = (
         f"Здравствуйте, {recipient.username}!\n\n"
-        f'В категории "{post.categories.first().name}" появилась новая статья: "{post.title}".\n'
+        f'В категории "{post.categories.first().name}"появилась новая статья: '
+        f'{post.title}".\n'
         f"Читать статью: {post_url}\n\n"
         f"С уважением, команда NewsPortal"
     )

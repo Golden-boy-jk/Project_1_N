@@ -1,26 +1,27 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
-from django.core.paginator import Paginator, EmptyPage
-from django.db.models import Q
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.views.decorators.cache import cache_page
-from .models import Post, Category
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
-from django.views.generic import CreateView, UpdateView, DeleteView, DetailView
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.models import Group
+from django.core.mail import EmailMultiAlternatives
+from django.core.paginator import EmptyPage, Paginator
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse, reverse_lazy
 from django.utils import translation
-from django.views import View
-from django.utils.translation import gettext_lazy as _
 from django.utils.translation import activate
+from django.utils.translation import gettext_lazy as _
+from django.views import View
+from django.views.decorators.cache import cache_page
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
+from rest_framework import permissions, viewsets
+
 from .forms import TimezoneForm
-from rest_framework import viewsets, permissions
+from .models import Category, Post
 from .serializers import PostSerializer
 
 

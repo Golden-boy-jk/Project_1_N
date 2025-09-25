@@ -1,18 +1,18 @@
-from . import views
 from django.urls import path
+
+from . import views
 
 # from django.conf.urls.i18n import i18n_patterns
 from .views import (
-    news_list,
-    news_detail,
-    news_search,
-    home,
-    category_detail,
     PostCreateView,
     PostDeleteView,
     PostUpdateView,
+    category_detail,
+    home,
+    news_detail,
+    news_list,
+    news_search,
 )
-
 
 urlpatterns = [
     path("set_language/", views.set_language, name="set_language"),

@@ -1,7 +1,8 @@
 # news/api_urls.py
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import NewsViewSet, ArticleViewSet
+
+from .views import ArticleViewSet, NewsViewSet
 
 app_name = "news_api"
 

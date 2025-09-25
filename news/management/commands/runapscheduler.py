@@ -1,16 +1,18 @@
 import logging
-from django.conf import settings
+from datetime import timedelta
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+from django.conf import settings
+from django.contrib.sites.models import Site
+from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
+from django.template.loader import render_to_string
+from django.utils import timezone
 from django_apscheduler.jobstores import DjangoJobStore
 from django_apscheduler.models import DjangoJobExecution
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from datetime import timedelta
-from django.utils import timezone
-from news.models import Post, Category
-from django.contrib.sites.models import Site
+
+from news.models import Category, Post
 
 logger = logging.getLogger(__name__)
 

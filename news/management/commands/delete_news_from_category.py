@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from news.models import Post, Category
+
+from news.models import Category, Post
 
 
 class Command(BaseCommand):

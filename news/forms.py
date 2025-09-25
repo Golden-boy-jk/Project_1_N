@@ -1,6 +1,6 @@
+import pytz
 from django import forms
 from django.apps import apps
-import pytz
 from django.utils.translation import gettext_lazy as _
 
 

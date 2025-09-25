@@ -1,5 +1,5 @@
-from django.core.signing import TimestampSigner
 from django.conf import settings
+from django.core.signing import TimestampSigner
 
 signer = TimestampSigner()
 

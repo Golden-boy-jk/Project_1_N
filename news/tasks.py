@@ -1,10 +1,12 @@
+from datetime import timedelta
+
 from celery import shared_task
-from news.models import Post
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
-from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
+
+from news.models import Post
 
 
 @shared_task
@@ -54,7 +56,8 @@ def send_weekly_newsletter():
             <p>Вот последние новости за прошедшую неделю:</p>
             <ul>
         """
-        plain_message = f"Здравствуйте, {subscriber.username}!\n\nВот последние новости за прошедшую неделю:\n\n"
+        plain_message = f"Здравствуйте, {subscriber.username}!\n\n"
+        "Вот последние новости за прошедшую неделю:\n\n"
 
         for post in user_news:
             post_url = f"{site_url}{post.get_absolute_url()}"
