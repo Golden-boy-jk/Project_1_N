@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+from datetime import datetime
+
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, QuerySet
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import translation
@@ -11,19 +16,20 @@ from django.utils.translation import activate
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import cache_page
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
-from rest_framework import permissions, viewsets
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .forms import TimezoneForm
 from .models import Category, Post
 from .serializers import PostSerializer
 
 # ────────────────────────────────────────────────────────────────────────────────
-# Домашняя/общие страницы
+# Домашняя / общие страницы
 # ────────────────────────────────────────────────────────────────────────────────
 
 
 @cache_page(60)
-def home(request):
+def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html")
 
 
@@ -33,20 +39,22 @@ def home(request):
 
 
 @cache_page(600)
-def category_detail(request, pk: int):
-    """Страница одной категории (pk унифицируем с urls.py)."""
-    category = get_object_or_404(Category, pk=pk)
-    return render(request, "category_detail.html", {"category": category})
+def category_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """Страница одной категории."""
+    category = get_object_or_404(
+        Category.objects.prefetch_related("subscribers"), pk=pk
+    )
+    return render(request, "categories/detail.html", {"category": category})
 
 
 @cache_page(600)
-def category_list(request):
+def category_list(request: HttpRequest) -> HttpResponse:
     categories = Category.objects.all().order_by("name")
-    return render(request, "categories/category_list.html", {"categories": categories})
+    return render(request, "categories/list.html", {"categories": categories})
 
 
 @login_required
-def subscribe_category(request, pk: int):
+def subscribe_category(request: HttpRequest, pk: int) -> HttpResponse:
     category = get_object_or_404(Category, pk=pk)
     category.subscribe(request.user)
     messages.success(
@@ -56,7 +64,7 @@ def subscribe_category(request, pk: int):
 
 
 @login_required
-def unsubscribe_category(request, pk: int):
+def unsubscribe_category(request: HttpRequest, pk: int) -> HttpResponse:
     category = get_object_or_404(Category, pk=pk)
     category.unsubscribe(request.user)
     messages.info(
@@ -66,67 +74,91 @@ def unsubscribe_category(request, pk: int):
 
 
 # ────────────────────────────────────────────────────────────────────────────────
-# Аутентификация/выход
+# Аутентификация / выход
 # ────────────────────────────────────────────────────────────────────────────────
 
 
-def custom_logout(request):
+def custom_logout(request: HttpRequest) -> HttpResponse:
     logout(request)
     return render(request, "news/logout.html")
 
 
 # ────────────────────────────────────────────────────────────────────────────────
-# Новости (список/поиск/детали)
+# Новости (список / поиск / детали)
 # ────────────────────────────────────────────────────────────────────────────────
 
 
-@cache_page(300)
-def news_list(request):
-    qs = (
+def _post_base_qs() -> QuerySet[Post]:
+    """Базовый queryset для Post с жадными загрузками."""
+    return (
         Post.objects.select_related("author__user")
         .prefetch_related("categories")
         .order_by("-created_at")
     )
+
+
+@cache_page(300)
+def news_list(request: HttpRequest) -> HttpResponse:
+    qs = _post_base_qs()
     paginator = Paginator(qs, 5)
     page_obj = paginator.get_page(request.GET.get("page"))
-    return render(request, "news_list.html", {"page_obj": page_obj})
+    return render(request, "news/list.html", {"page_obj": page_obj})
 
 
-def news_detail(request, pk: int):
-    post = get_object_or_404(
-        Post.objects.select_related("author__user").prefetch_related("categories"),
-        pk=pk,
-    )
-    return render(request, "news_detail.html", {"post": post})
+def news_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    post = get_object_or_404(_post_base_qs(), pk=pk)
+    return render(request, "news/detail.html", {"post": post})
+
+
+def _parse_iso_date(value: str) -> datetime | None:
+    """Безопасный парсер ISO-даты для фильтра `created_at__gte`."""
+    if not value:
+        return None
+    try:
+        # поддержим YYYY-MM-DD и полные ISO-строки
+        return datetime.fromisoformat(value)  # tz-aware тоже ок — Django нормализует
+    except ValueError:
+        return None
 
 
 @cache_page(120)
-def news_search(request):
-    """Поиск с простыми фильтрами; дату лучше валидировать в форме, но для DEV оставим так."""
-    query = request.GET.get("q", "")
-    author_name = request.GET.get("author", "")
-    date_after = request.GET.get("date_after", "")
-    post_type = request.GET.get("type", "")
+def news_search(request: HttpRequest) -> HttpResponse:
+    """
+    Поиск с простыми фильтрами. Дату валидируем безопасно.
+    Шаблон: templates/news/search.html
+    """
+    query = request.GET.get("q", "").strip()
+    author_name = request.GET.get("author", "").strip()
+    date_after_raw = request.GET.get("date_after", "").strip()
+    post_type = request.GET.get("type", "").strip().upper()
 
     filters = Q()
     if query:
         filters &= Q(title__icontains=query) | Q(text__icontains=query)
     if author_name:
         filters &= Q(author__user__username__icontains=author_name)
+
+    date_after = _parse_iso_date(date_after_raw)
     if date_after:
         filters &= Q(created_at__gte=date_after)
-    if post_type:
+    elif date_after_raw:
+        messages.warning(request, _("Неверный формат даты. Используйте YYYY-MM-DD."))
+
+    if post_type in {"NW", "AR"}:
         filters &= Q(type=post_type)
 
-    qs = (
-        Post.objects.filter(filters)
-        .select_related("author__user")
-        .prefetch_related("categories")
-        .order_by("-created_at")
-    )
+    qs = _post_base_qs().filter(filters)
     paginator = Paginator(qs, 5)
     page_obj = paginator.get_page(request.GET.get("page"))
-    return render(request, "news/news_search.html", {"page_obj": page_obj})
+
+    context = {
+        "page_obj": page_obj,
+        "q": query,
+        "author": author_name,
+        "date_after": date_after_raw,
+        "type": post_type,
+    }
+    return render(request, "news/search.html", context)
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -137,27 +169,26 @@ def news_search(request):
 class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Post
     fields = ["title", "text", "categories"]
-    template_name = "news/news_form.html"
+    template_name = "news/form.html"
     success_url = reverse_lazy("news_list")
-    # Можно оставить кастомный пермисс или использовать стандартный add_post
     permission_required = "news.add_post"
 
+    # ожидаем extra_context={"type": "NW"} или {"type": "AR"} в urls.py
     def form_valid(self, form):
-        # Проверка, что пользователь — автор
-        if not self.request.user.groups.filter(name="authors").exists():
+        user = self.request.user
+
+        if not user.groups.filter(name="authors").exists():
             messages.error(self.request, _("У вас нет прав на создание поста."))
             return redirect("home")
 
-        # Назначаем автора
-        if hasattr(self.request.user, "author"):
-            form.instance.author = self.request.user.author
+        if hasattr(user, "author"):
+            form.instance.author = user.author
         else:
             messages.error(self.request, _("У вашего пользователя нет профиля автора."))
             return redirect("home")
 
-        # Тип поста берём из extra_context (см. urls.py) или по умолчанию оставляем ARTICLE
         post_type = None
-        if hasattr(self, "extra_context") and self.extra_context:
+        if getattr(self, "extra_context", None):
             post_type = self.extra_context.get("type")
         if post_type in {"NW", "AR"}:
             form.instance.type = post_type
@@ -170,9 +201,20 @@ class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
 class PostUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Post
     fields = ["title", "text", "categories"]
-    template_name = "news/news_form.html"
+    template_name = "news/form.html"
     success_url = reverse_lazy("news_list")
     permission_required = "news.change_post"
+
+    def get_queryset(self) -> QuerySet[Post]:
+        """
+        Ограничим редактирование постами текущего автора.
+        Если нужно, чтобы модераторы могли всё — расширь проверку по группам/правам.
+        """
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, "author"):
+            return qs.filter(author=user.author)
+        return qs.none()
 
     def form_valid(self, form):
         if not self.request.user.groups.filter(name="authors").exists():
@@ -184,9 +226,16 @@ class PostUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
 
 class PostDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Post
-    template_name = "news/news_confirm_delete.html"
+    template_name = "news/confirm_delete.html"
     success_url = reverse_lazy("news_list")
     permission_required = "news.delete_post"
+
+    def get_queryset(self) -> QuerySet[Post]:
+        user = self.request.user
+        qs = super().get_queryset()
+        if hasattr(user, "author"):
+            return qs.filter(author=user.author)
+        return qs.none()
 
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, _("Пост удалён."))
@@ -200,35 +249,40 @@ class PostDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 
 class PostDetailView(DetailView):
     model = Post
-    template_name = "news/post_detail.html"
+    template_name = "news/detail.html"
     context_object_name = "post"
 
 
-def post_list(request):
-    """Пример списка с фильтрацией по категории (правильное имя связи: categories)."""
-    category_name = request.GET.get("category")
-    qs = Post.objects.all()
+def post_list(request: HttpRequest) -> HttpResponse:
+    """
+    Список постов с фильтрацией по категории через query-param `?category=...`.
+    """
+    category_name = request.GET.get("category", "").strip()
+    qs = _post_base_qs()
     if category_name:
-        qs = qs.filter(categories__name=category_name)
+        qs = qs.filter(categories__name__icontains=category_name)
 
     categories = Category.objects.all().order_by("name")
     return render(
         request,
-        "news/post_list.html",  # если есть такой шаблон; иначе замени путь
-        {"posts": qs, "categories": categories},
+        "news/post_list.html",
+        {"posts": qs, "categories": categories, "selected_category": category_name},
     )
 
 
-def set_language(request):
-    """Простая смена языка без i18n_patterns (dev-вариант)."""
+def set_language(request: HttpRequest) -> HttpResponse:
+    """Смена языка (dev-вариант без i18n_patterns)."""
     lang_code = request.GET.get("lang", "ru")
     activate(lang_code)
     request.session[translation.LANGUAGE_SESSION_KEY] = lang_code
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
-def set_timezone(request):
-    """Смена таймзоны в профиле пользователя (учебный dev-вариант)."""
+@login_required
+def set_timezone(request: HttpRequest) -> HttpResponse:
+    """
+    Смена таймзоны. Если у тебя таймзона лежит в CustomUser, замени обращение к profile.
+    """
     if request.method == "POST":
         form = TimezoneForm(request.POST)
         if form.is_valid():
@@ -241,55 +295,44 @@ def set_timezone(request):
                 messages.error(request, _("Профиль пользователя не найден."))
             return redirect("home")
     else:
-        initial = {
-            "timezone": getattr(
-                getattr(request.user, "profile", None), "timezone", "Europe/Moscow"
-            )
-        }
-        form = TimezoneForm(initial=initial)
+        initial_tz = getattr(
+            getattr(request.user, "profile", None), "timezone", "Europe/Moscow"
+        )
+        form = TimezoneForm(initial={"timezone": initial_tz})
 
-    return render(request, "set_timezone.html", {"form": form})
+    return render(request, "settings/set_timezone.html", {"form": form})
 
 
 # ────────────────────────────────────────────────────────────────────────────────
-# DRF
+# DRF ViewSets
 # ────────────────────────────────────────────────────────────────────────────────
-
-
-class IsAuthenticatedOrReadOnly(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return bool(request.user and request.user.is_authenticated)
 
 
 class NewsViewSet(viewsets.ModelViewSet):
     """Только посты типа 'Новость'."""
 
-    queryset = (
-        Post.objects.filter(type="NW")
-        .select_related("author__user")
-        .prefetch_related("categories")
-    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self) -> QuerySet[Post]:
+        return _post_base_qs().filter(type="NW")
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
     """Только посты типа 'Статья'."""
 
-    queryset = (
-        Post.objects.filter(type="AR")
-        .select_related("author__user")
-        .prefetch_related("categories")
-    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self) -> QuerySet[Post]:
+        return _post_base_qs().filter(type="AR")
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = (
-        Post.objects.all().select_related("author__user").prefetch_related("categories")
-    )
+    """Все посты."""
+
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self) -> QuerySet[Post]:
+        return _post_base_qs()
