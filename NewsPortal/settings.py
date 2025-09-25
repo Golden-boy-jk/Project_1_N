@@ -37,8 +37,6 @@ INSTALLED_APPS = [
     # project apps
     "accounts",
     "news.apps.NewsConfig",
-    # scheduling / tasks
-    "django_apscheduler",
     # auth / social
     "allauth",
     "allauth.account",
@@ -109,7 +107,7 @@ LOCALE_PATHS = [os.path.join(BASE_DIR, "locale")]
 
 # --- Static / Media -----------------------------------------------------------
 STATIC_URL = "/static/"
-# STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # включить на проде
+# STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # enable on prod
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -121,7 +119,6 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/accounts/profile/"
 LOGOUT_REDIRECT_URL = "/news/"
 
-# современный минимальный набор
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
@@ -140,8 +137,8 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_PROVIDERS = {
     "yandex": {
         "APP": {
-            "client_id": env("YANDEX_CLIENT_ID", default=""),
-            "secret": env("YANDEX_SECRET", default=""),
+            "client_id": "",
+            "secret": "",
         },
         "SCOPE": ["login:email"],
         "AUTH_PARAMS": {"force_confirm": "yes"},
@@ -162,7 +159,7 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
 SERVER_EMAIL = EMAIL_HOST_USER
 SITE_URL = "http://127.0.0.1:8000"
 
-ADMINS = [("Admin", env("ADMIN_EMAIL", default="admin@example.com"))]
+ADMINS = [("Admin", "admin@example.com")]
 
 # --- Celery / Beat ------------------------------------------------------------
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
@@ -177,11 +174,11 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SCHEDULE = {
     "send_weekly_newsletter": {
         "task": "news.tasks.send_weekly_newsletter",
-        "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Пн, 08:00
+        "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Mon 08:00
     },
 }
 
-# --- Cache (file-based; можно заменить на Redis в проде) ----------------------
+# --- Cache --------------------------------------------------------------------
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
@@ -189,13 +186,3 @@ CACHES = {
         "TIMEOUT": 300,
     }
 }
-
-# --- Django APScheduler -------------------------------------------------------
-APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
-APSCHEDULER_RUN_NOW_TIMEOUT = 25
-APSCHEDULER_JOBSTORES = {
-    "default": {"type": "django_apscheduler.jobstores.DjangoJobStore"}
-}
-APSCHEDULER_EXECUTORS = {"default": {"type": "threadpool", "max_workers": 20}}
-APSCHEDULER_JOB_DEFAULTS = {"coalesce": False, "max_instances": 3}
-APSCHEDULER_TIMEZONE = TIME_ZONE
