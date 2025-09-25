@@ -43,10 +43,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
 ]
 
-LOCAL_APPS = [
-    "news",
-    "accounts",
-]
+LOCAL_APPS = ["news", "accounts", "news.apps.NewsConfig"]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 SITE_ID = env.int("SITE_ID")

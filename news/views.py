@@ -16,7 +16,6 @@ from rest_framework import permissions, viewsets
 from .forms import TimezoneForm
 from .models import Category, Post
 from .serializers import PostSerializer
-from .tasks import send_new_post_notifications  # Celery-задача (асинхронно)
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Домашняя/общие страницы
@@ -141,7 +140,7 @@ class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     template_name = "news/news_form.html"
     success_url = reverse_lazy("news_list")
     # Можно оставить кастомный пермисс или использовать стандартный add_post
-    permission_required = "news.can_create_post"
+    permission_required = "news.add_post"
 
     def form_valid(self, form):
         # Проверка, что пользователь — автор
@@ -164,10 +163,6 @@ class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             form.instance.type = post_type
 
         response = super().form_valid(form)
-
-        # Асинхронные уведомления подписчикам
-        send_new_post_notifications.delay(self.object.pk)
-
         messages.success(self.request, _("Пост успешно создан."))
         return response
 
@@ -219,7 +214,7 @@ def post_list(request):
     categories = Category.objects.all().order_by("name")
     return render(
         request,
-        "yourapp/post_list.html",  # если есть такой шаблон; иначе замени путь
+        "news/post_list.html",  # если есть такой шаблон; иначе замени путь
         {"posts": qs, "categories": categories},
     )
 
