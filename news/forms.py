@@ -1,13 +1,17 @@
 import pytz
 from django import forms
-from django.apps import apps
 from django.utils.translation import gettext_lazy as _
+
+from .models import Post
 
 
 class PostForm(forms.ModelForm):
     class Meta:
-        model = apps.get_model("news", "Post")
-        fields = ["title", "text", "author"]
+        model = Post
+        fields = ["title", "text", "categories"]
+        widgets = {
+            "categories": forms.CheckboxSelectMultiple,  # 👈 чекбоксы вместо списка
+        }
 
 
 class TimezoneForm(forms.Form):
