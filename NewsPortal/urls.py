@@ -13,5 +13,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("news/", include("news.urls")),
-    path("api/", include(news_router.urls)),  # <- этого достаточно
+    path("api/", include(news_router.urls)),
 ]
