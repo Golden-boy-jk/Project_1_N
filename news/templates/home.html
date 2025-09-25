@@ -1,0 +1,18 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Главная — NewsPortal</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <h1>Привет в NewsPortal 👋</h1>
+  <nav>
+    <a href="{% url 'news_list' %}">Все публикации</a> |
+    <a href="{% url 'news_search' %}">Поиск</a> |
+    <a href="/admin/">Админка</a>
+  </nav>
+  <p>Это учебная главная страница.</p>
+</body>
+</html>

@@ -1,5 +1,6 @@
 # --- Core framework ---
 Django>=5.0,<6.0
+django-filter>=24.1
 
 # --- REST API ---
 djangorestframework>=3.15
