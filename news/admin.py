@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Prefetch
 
 from .models import Category, Post
 
@@ -11,14 +12,22 @@ class PostAdmin(admin.ModelAdmin):
         "created_at",
         "rating",
         "get_categories",
-    )  # Добавляем категории
-    list_filter = ("type", "created_at", "categories")  # Добавляем фильтр по категориям
+    )
+    list_filter = ("type", "created_at", "categories")
     search_fields = ("title", "text")
     ordering = ("-created_at",)
+    list_per_page = 25  # пагинация в админке
+
+    def get_queryset(self, request):
+        """Оптимизируем запросы для категорий (убираем N+1)"""
+        qs = super().get_queryset(request)
+        return qs.prefetch_related(
+            Prefetch("categories", queryset=Category.objects.only("id", "name"))
+        )
 
     def get_categories(self, obj):
         """Выводит список категорий в админке"""
-        return ", ".join([cat.name for cat in obj.categories.all()])
+        return ", ".join(obj.categories.values_list("name", flat=True))
 
     get_categories.short_description = "Категории"
 
@@ -27,3 +36,4 @@ class PostAdmin(admin.ModelAdmin):
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
+    ordering = ("name",)

@@ -1,21 +1,14 @@
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.contrib.auth.models import Group
-from django.core.mail import EmailMultiAlternatives
-from django.core.paginator import EmptyPage, Paginator
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.paginator import Paginator
 from django.db.models import Q
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.loader import render_to_string
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils import translation
 from django.utils.translation import activate
 from django.utils.translation import gettext_lazy as _
-from django.views import View
 from django.views.decorators.cache import cache_page
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 from rest_framework import permissions, viewsets
@@ -23,146 +16,163 @@ from rest_framework import permissions, viewsets
 from .forms import TimezoneForm
 from .models import Category, Post
 from .serializers import PostSerializer
+from .tasks import send_new_post_notifications  # Celery-задача (асинхронно)
+
+# ────────────────────────────────────────────────────────────────────────────────
+# Домашняя/общие страницы
+# ────────────────────────────────────────────────────────────────────────────────
 
 
-def send_new_post_email(post):
-    """Отправка письма всем подписчикам категории"""
-    category = post.categories.first()  # Получаем первую категорию поста
-    subscribers = category.subscribers.values_list(
-        "email", flat=True
-    )  # Получаем email подписчиков
-
-    if not subscribers:
-        return
-
-    post_url = f"http://127.0.0.1:8000{reverse('news_detail', args=[post.id])}"
-    subject = f"Новая статья в категории {category.name}: {post.title}"
-    text_content = f"Прочитайте новый пост: {post.title}\n{post_url}"
-    html_content = render_to_string(
-        "email/new_post_email.html", {"post": post, "post_url": post_url}
-    )
-
-    msg = EmailMultiAlternatives(
-        subject, text_content, settings.DEFAULT_FROM_EMAIL, subscribers
-    )
-    msg.attach_alternative(html_content, "text/html")
-    msg.send()
-
-
-# 2. Функция для главной страницы
 @cache_page(60)
 def home(request):
     return render(request, "home.html")
 
 
-# 3. Функция для отображения страницы категории
+# ────────────────────────────────────────────────────────────────────────────────
+# Категории
+# ────────────────────────────────────────────────────────────────────────────────
+
+
 @cache_page(600)
-def category_detail(request, category_id):
-    category = get_object_or_404(Category, id=category_id)  # Находим категорию по ID
-    return render(
-        request, "category_detail.html", {"category": category}
-    )  # Рендерим шаблон категории
+def category_detail(request, pk: int):
+    """Страница одной категории (pk унифицируем с urls.py)."""
+    category = get_object_or_404(Category, pk=pk)
+    return render(request, "category_detail.html", {"category": category})
 
 
-# 4. Функция для отображения списка всех категорий
 @cache_page(600)
 def category_list(request):
-    categories = Category.objects.all()  # Получаем все категории
-    return render(
-        request, "categories/category_list.html", {"categories": categories}
-    )  # Рендерим шаблон
+    categories = Category.objects.all().order_by("name")
+    return render(request, "categories/category_list.html", {"categories": categories})
 
 
-# 5. Функция для выхода пользователя
+@login_required
+def subscribe_category(request, pk: int):
+    category = get_object_or_404(Category, pk=pk)
+    category.subscribe(request.user)
+    messages.success(
+        request, _("Вы подписались на категорию «%(name)s».") % {"name": category.name}
+    )
+    return redirect("category_detail", pk=category.pk)
+
+
+@login_required
+def unsubscribe_category(request, pk: int):
+    category = get_object_or_404(Category, pk=pk)
+    category.unsubscribe(request.user)
+    messages.info(
+        request, _("Вы отписались от категории «%(name)s».") % {"name": category.name}
+    )
+    return redirect("category_detail", pk=category.pk)
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# Аутентификация/выход
+# ────────────────────────────────────────────────────────────────────────────────
+
+
 def custom_logout(request):
-    logout(request)  # Выход пользователя
+    logout(request)
     return render(request, "news/logout.html")
 
 
-# 6. Функция для отображения списка новостей с пагинацией
+# ────────────────────────────────────────────────────────────────────────────────
+# Новости (список/поиск/детали)
+# ────────────────────────────────────────────────────────────────────────────────
+
+
 @cache_page(300)
 def news_list(request):
-    news = Post.objects.all().order_by("-created_at")  # Получаем все новости
-    paginator = Paginator(news, 5)  # Создаем пагинатор
-    page_number = request.GET.get("page")  # Получаем текущую страницу
-
-    try:
-        page_obj = paginator.get_page(page_number)  # Получаем страницы
-    except EmptyPage:
-        messages.error(request, "Страница не найдена.")  # Если страница не найдена
-        page_obj = paginator.get_page(1)  # Показываем первую страницу
-
-    return render(
-        request, "news_list.html", {"page_obj": page_obj}
-    )  # Рендерим список новостей
+    qs = (
+        Post.objects.select_related("author__user")
+        .prefetch_related("categories")
+        .order_by("-created_at")
+    )
+    paginator = Paginator(qs, 5)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(request, "news_list.html", {"page_obj": page_obj})
 
 
-# 7. Функция для отображения подробностей статьи
-def news_detail(request, pk):
-    post = get_object_or_404(Post, pk=pk)  # Находим пост по ID
-    return render(
-        request, "news_detail.html", {"post": post}
-    )  # Рендерим шаблон с подробностями
+def news_detail(request, pk: int):
+    post = get_object_or_404(
+        Post.objects.select_related("author__user").prefetch_related("categories"),
+        pk=pk,
+    )
+    return render(request, "news_detail.html", {"post": post})
 
 
-# 8. Функция для поиска новостей
 @cache_page(120)
 def news_search(request):
-    query = request.GET.get("q", "")  # Получаем поисковый запрос
-    author_name = request.GET.get("author", "")  # Получаем имя автора
-    date_after = request.GET.get("date_after", "")  # Получаем дату после которой искать
-    post_type = request.GET.get("type", "")  # Получаем тип поста
+    """Поиск с простыми фильтрами; дату лучше валидировать в форме, но для DEV оставим так."""
+    query = request.GET.get("q", "")
+    author_name = request.GET.get("author", "")
+    date_after = request.GET.get("date_after", "")
+    post_type = request.GET.get("type", "")
 
-    filters = Q()  # Инициализируем фильтры
+    filters = Q()
     if query:
-        filters &= Q(title__icontains=query)  # Фильтруем по заголовку
+        filters &= Q(title__icontains=query) | Q(text__icontains=query)
     if author_name:
-        filters &= Q(
-            author__user__username__icontains=author_name
-        )  # Фильтруем по автору
+        filters &= Q(author__user__username__icontains=author_name)
     if date_after:
-        filters &= Q(created_at__gte=date_after)  # Фильтруем по дате
+        filters &= Q(created_at__gte=date_after)
     if post_type:
-        filters &= Q(type=post_type)  # Фильтруем по типу
+        filters &= Q(type=post_type)
 
-    news = Post.objects.filter(filters).order_by(
-        "-created_at"
-    )  # Получаем новости по фильтрам
-    paginator = Paginator(news, 5)  # Пагинация
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    qs = (
+        Post.objects.filter(filters)
+        .select_related("author__user")
+        .prefetch_related("categories")
+        .order_by("-created_at")
+    )
+    paginator = Paginator(qs, 5)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(request, "news/news_search.html", {"page_obj": page_obj})
 
-    return render(
-        request, "news/news_search.html", {"page_obj": page_obj}
-    )  # Рендерим результаты поиска
+
+# ────────────────────────────────────────────────────────────────────────────────
+# CRUD постов
+# ────────────────────────────────────────────────────────────────────────────────
 
 
-# 9. Классы для создания, редактирования и удаления постов
-class PostCreateView(PermissionRequiredMixin, CreateView):
+class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Post
     fields = ["title", "text", "categories"]
     template_name = "news/news_form.html"
     success_url = reverse_lazy("news_list")
-
+    # Можно оставить кастомный пермисс или использовать стандартный add_post
     permission_required = "news.can_create_post"
 
     def form_valid(self, form):
+        # Проверка, что пользователь — автор
         if not self.request.user.groups.filter(name="authors").exists():
-            messages.error(self.request, "У вас нет прав на создание поста.")
-            post_url = self.request.build_absolute_uri(
-                reverse("news_detail", args=[self.object.pk])
-            )
-            context = self.get_context_data()
-            context["post_url"] = post_url
+            messages.error(self.request, _("У вас нет прав на создание поста."))
             return redirect("home")
 
-        form.instance.author = self.request.user.author
-        post = form.save()
-        send_new_post_email(post)  # Отправляем email после создания поста
-        return super().form_valid(form)
+        # Назначаем автора
+        if hasattr(self.request.user, "author"):
+            form.instance.author = self.request.user.author
+        else:
+            messages.error(self.request, _("У вашего пользователя нет профиля автора."))
+            return redirect("home")
+
+        # Тип поста берём из extra_context (см. urls.py) или по умолчанию оставляем ARTICLE
+        post_type = None
+        if hasattr(self, "extra_context") and self.extra_context:
+            post_type = self.extra_context.get("type")
+        if post_type in {"NW", "AR"}:
+            form.instance.type = post_type
+
+        response = super().form_valid(form)
+
+        # Асинхронные уведомления подписчикам
+        send_new_post_notifications.delay(self.object.pk)
+
+        messages.success(self.request, _("Пост успешно создан."))
+        return response
 
 
-class PostUpdateView(PermissionRequiredMixin, UpdateView):
+class PostUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Post
     fields = ["title", "text", "categories"]
     template_name = "news/news_form.html"
@@ -171,65 +181,28 @@ class PostUpdateView(PermissionRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         if not self.request.user.groups.filter(name="authors").exists():
-            messages.error(self.request, "У вас нет прав на редактирование поста.")
+            messages.error(self.request, _("У вас нет прав на редактирование поста."))
             return redirect("home")
+        messages.success(self.request, _("Пост обновлён."))
         return super().form_valid(form)
 
 
-class PostDeleteView(PermissionRequiredMixin, DeleteView):
+class PostDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Post
     template_name = "news/news_confirm_delete.html"
     success_url = reverse_lazy("news_list")
     permission_required = "news.delete_post"
 
-
-# 10. Функции для подписки и отписки от категории
-@login_required
-def subscribe_category(request, category_id):
-    """Подписываем пользователя на рассылку новостей категории"""
-    category = get_object_or_404(Category, id=category_id)  # Находим категорию
-    category.subscribe(request.user)  # Добавляем пользователя в подписчики категории
-    return redirect(
-        "category_detail", category_id=category.id
-    )  # Перенаправляем на страницу категории
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, _("Пост удалён."))
+        return super().delete(request, *args, **kwargs)
 
 
-@login_required
-def unsubscribe_category(request, category_id):
-    """Отписываем пользователя от рассылки новостей категории"""
-    category = get_object_or_404(Category, id=category_id)  # Находим категорию
-    category.unsubscribe(request.user)  # Убираем пользователя из подписчиков категории
-    return redirect(
-        "category_detail", category_id=category.id
-    )  # Перенаправляем на страницу категории
+# ────────────────────────────────────────────────────────────────────────────────
+# Вспомогательные представления
+# ────────────────────────────────────────────────────────────────────────────────
 
 
-# 11. Сигналы для уведомлений
-@receiver(post_save, sender=Post)
-def notify_subscribers_on_new_post(sender, instance, created, **kwargs):
-    """Отправляет уведомления подписчикам при публикации новой статьи"""
-    if created:
-        for category in instance.categories.all():
-            category.notify_subscribers(
-                instance
-            )  # Уведомление для каждого подписчика категории
-
-
-# 12. Функция для того, чтобы стать автором
-@login_required
-def become_author(request):
-    """Функция для того, чтобы стать автором"""
-    if not request.user.groups.filter(name="authors").exists():
-        group = Group.objects.get(name="authors")  # Получаем группу 'authors'
-        request.user.groups.add(group)  # Добавляем пользователя в группу 'authors'
-        messages.success(request, "Теперь вы автор!")
-    else:
-        messages.info(request, "Вы уже стали автором!")
-
-    return redirect("profile")  # Перенаправляем на профиль пользователя
-
-
-# 13. Подробности поста
 class PostDetailView(DetailView):
     model = Post
     template_name = "news/post_detail.html"
@@ -237,78 +210,91 @@ class PostDetailView(DetailView):
 
 
 def post_list(request):
-    category_filter = request.GET.get("category", None)
-    if category_filter:
-        posts = Post.objects.filter(category__name=category_filter)
-    else:
-        posts = Post.objects.all()
+    """Пример списка с фильтрацией по категории (правильное имя связи: categories)."""
+    category_name = request.GET.get("category")
+    qs = Post.objects.all()
+    if category_name:
+        qs = qs.filter(categories__name=category_name)
 
-    categories = Category.objects.all()
-
+    categories = Category.objects.all().order_by("name")
     return render(
         request,
-        "yourapp/post_list.html",
-        {
-            "posts": posts,
-            "categories": categories,
-        },
+        "yourapp/post_list.html",  # если есть такой шаблон; иначе замени путь
+        {"posts": qs, "categories": categories},
     )
 
 
 def set_language(request):
-    lang_code = request.GET.get("lang", "ru")  # По умолчанию русский
+    """Простая смена языка без i18n_patterns (dev-вариант)."""
+    lang_code = request.GET.get("lang", "ru")
     activate(lang_code)
     request.session[translation.LANGUAGE_SESSION_KEY] = lang_code
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
-class Index(View):
-    def get(self, request):
-        # Изменение языка
-        language_name = request.GET.get("language_name", "ru")  # По умолчанию 'ru'
-        activate(language_name)
-
-        # Перевод строки
-        string = _("Hello World")  # Строка будет переведена на текущий язык
-
-        context = {"string": string}
-        return render(request, "home.html", context)
-
-
 def set_timezone(request):
+    """Смена таймзоны в профиле пользователя (учебный dev-вариант)."""
     if request.method == "POST":
         form = TimezoneForm(request.POST)
         if form.is_valid():
             tz = form.cleaned_data["timezone"]
-            request.user.profile.timezone = tz
-            request.user.profile.save()
+            if hasattr(request.user, "profile"):
+                request.user.profile.timezone = tz
+                request.user.profile.save(update_fields=["timezone"])
+                messages.success(request, _("Часовой пояс обновлён."))
+            else:
+                messages.error(request, _("Профиль пользователя не найден."))
             return redirect("home")
     else:
-        form = TimezoneForm(initial={"timezone": request.user.profile.timezone})
+        initial = {
+            "timezone": getattr(
+                getattr(request.user, "profile", None), "timezone", "Europe/Moscow"
+            )
+        }
+        form = TimezoneForm(initial=initial)
 
     return render(request, "set_timezone.html", {"form": form})
 
 
+# ────────────────────────────────────────────────────────────────────────────────
+# DRF
+# ────────────────────────────────────────────────────────────────────────────────
+
+
 class IsAuthenticatedOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
-        # Только чтение для неавторизованных
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user and request.user.is_authenticated
+        return bool(request.user and request.user.is_authenticated)
 
 
 class NewsViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.filter(type="NW")
+    """Только посты типа 'Новость'."""
+
+    queryset = (
+        Post.objects.filter(type="NW")
+        .select_related("author__user")
+        .prefetch_related("categories")
+    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.filter(type="AR")
+    """Только посты типа 'Статья'."""
+
+    queryset = (
+        Post.objects.filter(type="AR")
+        .select_related("author__user")
+        .prefetch_related("categories")
+    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
+    queryset = (
+        Post.objects.all().select_related("author__user").prefetch_related("categories")
+    )
     serializer_class = PostSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]

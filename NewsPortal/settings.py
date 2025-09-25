@@ -2,53 +2,56 @@ import os
 from pathlib import Path
 
 import environ
-from celery.schedules import crontab
 
-# --- Base paths / env ---------------------------------------------------------
+# ── БАЗА / ОКРУЖЕНИЕ ────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
-    DEBUG=(bool, False),
+    DEBUG=(bool, True),
+    SECRET_KEY=(str, "dev-insecure-secret-key"),
     TIME_ZONE=(str, "Europe/Moscow"),
     LANGUAGE_CODE=(str, "ru"),
+    SITE_ID=(int, 1),
+    DATABASE_URL=(str, f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+    REDIS_URL=(str, "redis://localhost:6379/0"),
+    ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost"]),
+    STATIC_URL=(str, "/static/"),
+    MEDIA_URL=(str, "/media/"),
 )
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))  # .env опционален в DEV
 
-# --- Core ---------------------------------------------------------------------
-DEBUG = env("DEBUG", default=False)
-SECRET_KEY = env("SECRET_KEY", default="insecure-secret-key")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
+DEBUG = env("DEBUG")
+SECRET_KEY = env("SECRET_KEY")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
-# --- Database -----------------------------------------------------------------
-DATABASES = {"default": env.db(default=f"sqlite:///{BASE_DIR}/db.sqlite3")}
-
-# --- Installed apps -----------------------------------------------------------
-INSTALLED_APPS = [
-    # i18n for models
-    "modeltranslation",
-    # django core
+# ── ПРИЛОЖЕНИЯ ─────────────────────────────────────────────────────────────────
+DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
     "django.contrib.sites",
-    "django.contrib.flatpages",
-    # project apps
-    "accounts",
-    "news.apps.NewsConfig",
-    # auth / social
+    "django.contrib.staticfiles",
+]
+
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "rest_framework.authtoken",
+    "django_filters",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.yandex",
-    # API
-    "rest_framework",
 ]
 
-SITE_ID = 1
+LOCAL_APPS = [
+    "news",
+    "accounts",
+]
 
-# --- Middleware ---------------------------------------------------------------
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+SITE_ID = env.int("SITE_ID")
+
+# ── MIDDLEWARE / TEMPLATES ─────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -58,17 +61,14 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
 ]
 
-# --- URLs / WSGI --------------------------------------------------------------
 ROOT_URLCONF = "NewsPortal.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -82,107 +82,85 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "NewsPortal.wsgi.application"
+# ASGI_APPLICATION = "NewsPortal.asgi.application"  # если нужен ASGI
 
-# --- Auth password validators -------------------------------------------------
+# ── БАЗА ДАННЫХ ────────────────────────────────────────────────────────────────
+DATABASES = {"default": env.db("DATABASE_URL")}
+
+# ── ПАРОЛИ ─────────────────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# --- i18n / l10n --------------------------------------------------------------
-MODELTRANSLATION_DEFAULT_LANGUAGE = "ru"
-LANGUAGES = [
-    ("ru", "Russian"),
-    ("en", "English"),
-]
-LANGUAGE_CODE = env("LANGUAGE_CODE", default="ru")
-TIME_ZONE = env("TIME_ZONE", default="Europe/Moscow")
+# ── ЛОКАЛИЗАЦИЯ ────────────────────────────────────────────────────────────────
+LANGUAGE_CODE = env("LANGUAGE_CODE")
+TIME_ZONE = env("TIME_ZONE")
 USE_I18N = True
 USE_TZ = True
-LOCALE_PATHS = [os.path.join(BASE_DIR, "locale")]
 
-# --- Static / Media -----------------------------------------------------------
-STATIC_URL = "/static/"
-# STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # enable on prod
+LANGUAGES = [("ru", "Русский"), ("en", "English")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
-MEDIA_URL = "/media/"
+# ── СТАТИКА / МЕДИА ────────────────────────────────────────────────────────────
+STATIC_URL = env("STATIC_URL")
+STATICFILES_DIRS = [BASE_DIR / "static"]  # для dev удобно
+STATIC_ROOT = BASE_DIR / "staticfiles"  # collectstatic (если понадобится)
+
+MEDIA_URL = env("MEDIA_URL")
 MEDIA_ROOT = BASE_DIR / "media"
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# --- Django Allauth -----------------------------------------------------------
-LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/accounts/profile/"
-LOGOUT_REDIRECT_URL = "/news/"
-
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-
-ACCOUNT_EMAIL_VERIFICATION = "optional"
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_SIGNUP_FIELDS = ["email", "password1", "password2"]
-
-AUTHENTICATION_BACKENDS = [
+# ── АУТЕНТИФИКАЦИЯ / ALLAUTH ───────────────────────────────────────────────────
+AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
-]
+)
+# AUTH_USER_MODEL = "accounts.CustomUser"  # раскомментируй, если используешь
+LOGIN_REDIRECT_URL = "/"
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_USERNAME_REQUIRED = True
 
-SOCIALACCOUNT_PROVIDERS = {
-    "yandex": {
-        "APP": {
-            "client_id": "",
-            "secret": "",
-        },
-        "SCOPE": ["login:email"],
-        "AUTH_PARAMS": {"force_confirm": "yes"},
-    }
+# ── DRF ────────────────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
 }
 
-# --- Email --------------------------------------------------------------------
-EMAIL_BACKEND = env(
-    "EMAIL_BACKEND",
-    default="django.core.mail.backends.console.EmailBackend",
-)
-EMAIL_HOST = env("EMAIL_HOST", default="")
-EMAIL_PORT = env.int("EMAIL_PORT", default=587)
-EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
-SERVER_EMAIL = EMAIL_HOST_USER
-SITE_URL = "http://127.0.0.1:8000"
-
-ADMINS = [("Admin", "admin@example.com")]
-
-# --- Celery / Beat ------------------------------------------------------------
-REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+# ── CELERY (DEV) ───────────────────────────────────────────────────────────────
+# Если пока не пользуешься Celery — можно вообще не запускать Redis/Beat.
+REDIS_URL = env("REDIS_URL")
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-CELERY_BEAT_SCHEDULE = {
-    "send_weekly_newsletter": {
-        "task": "news.tasks.send_weekly_newsletter",
-        "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Mon 08:00
-    },
-}
-
-# --- Cache --------------------------------------------------------------------
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": os.path.join(BASE_DIR, "cache_files"),
-        "TIMEOUT": 300,
-    }
+# ── ПОЧТА (DEV) ────────────────────────────────────────────────────────────────
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "dev@example.com"
+SITE_URL = "http://127.0.0.1:8000"
+# ── ЛОГИ (простые для DEV) ─────────────────────────────────────────────────────
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "DEBUG" if DEBUG else "INFO"},
 }
