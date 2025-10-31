@@ -1,4 +1,4 @@
-# NewsPortal
+# N1
 
 Учебный новостной портал на Django (+ DRF, Celery, Allauth, i18n).
 
