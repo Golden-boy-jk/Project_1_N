@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Все публикации — NewsPortal</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <h1>Все публикации</h1>
+
+  <nav>
+    <a href="{% url 'news:home' %}">Главная</a> |
+    <a href="{% url 'news:news_search' %}">Поиск</a> |
+    <a href="/admin/">Админка</a>
+  </nav>
+
+  <hr>
+
+  {% if page_obj %}
+      <ul>
+        {% for post in page_obj %}
+          <li>
+            <strong>{{ post.title }}</strong>
+            — {{ post.created_at|date:"d.m.Y H:i" }}
+            <br>
+            Автор: {{ post.author.user.username }}
+            <br>
+            {{ post.preview }}
+            <br>
+            <a href="{% url 'news:news_detail' pk=post.pk %}">Читать полностью</a>
+          </li>
+          <hr>
+        {% empty %}
+          <p>Пока нет публикаций.</p>
+        {% endfor %}
+      </ul>
+
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}">« Назад</a>
+        {% endif %}
+
+        <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Вперёд »</a>
+        {% endif %}
+      </div>
+  {% else %}
+      <p>Пока нет публикаций.</p>
+  {% endif %}
+</body>
+</html>

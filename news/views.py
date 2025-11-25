@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from rest_framework import viewsets
+from rest_framework.permissions import (
+    IsAuthenticatedOrReadOnly,
+    BasePermission,
+    SAFE_METHODS,
+)
+
+from .forms import TimezoneForm
+from .models import Category, Post, PostType
+from .serializers import PostSerializer
+
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -16,13 +27,7 @@ from django.utils.translation import activate
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import cache_page
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from .forms import TimezoneForm
-from .models import Category, Post, PostType
-from .serializers import PostSerializer
-from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Домашняя / общие страницы
@@ -354,6 +359,34 @@ def set_timezone(request: HttpRequest) -> HttpResponse:
 # ────────────────────────────────────────────────────────────────────────────────
 
 
+class IsAuthorOrReadOnly(BasePermission):
+    """
+    Читать могут все.
+    Изменять может только автор (через профиль Author), либо суперюзер.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # SAFE методы (GET, HEAD, OPTIONS) разрешаем всем
+        if request.method in SAFE_METHODS:
+            return True
+
+        user = request.user
+
+        # Неавторизованных —— нет
+        if not user.is_authenticated:
+            return False
+
+        # Суперюзер может всё
+        if user.is_superuser:
+            return True
+
+        # Проверяем, что пользователь — автор поста
+        if hasattr(user, "author") and obj.author == user.author:
+            return True
+
+        return False
+
+
 class NewsViewSet(viewsets.ModelViewSet):
     """API: только посты типа 'Новость'."""
 
@@ -385,22 +418,3 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self) -> QuerySet[Post]:
         return _post_base_qs()
-
-
-class IsAuthorOrReadOnly(BasePermission):
-    """
-    Читать могут все.
-    Изменять может только автор (через профиль Author) или суперюзер.
-    """
-
-    def has_object_permission(self, request, view, obj):
-        if request.method in SAFE_METHODS:
-            return True
-        user = request.user
-        if not user.is_authenticated:
-            return False
-        if user.is_superuser:
-            return True
-        if hasattr(user, "author") and obj.author == user.author:
-            return True
-        return False

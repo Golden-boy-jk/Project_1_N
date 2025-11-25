@@ -1,0 +1,80 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Поиск — NewsPortal</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <h1>Поиск публикаций</h1>
+
+  <nav>
+    <a href="{% url 'news:home' %}">Главная</a> |
+    <a href="{% url 'news:news_list' %}">Все публикации</a> |
+    <a href="/admin/">Админка</a>
+  </nav>
+
+  <hr>
+
+  <form method="get">
+    <label>
+      Текст:
+      <input type="text" name="q" value="{{ q }}">
+    </label>
+    <label>
+      Автор:
+      <input type="text" name="author" value="{{ author }}">
+    </label>
+    <label>
+      Дата после:
+      <input type="date" name="date_after" value="{{ date_after }}">
+    </label>
+    <label>
+      Тип:
+      <select name="type">
+        <option value="">Любой</option>
+        <option value="NW" {% if type == "NW" %}selected{% endif %}>Новости</option>
+        <option value="AR" {% if type == "AR" %}selected{% endif %}>Статьи</option>
+      </select>
+    </label>
+    <button type="submit">Искать</button>
+  </form>
+
+  <hr>
+
+  {% if page_obj %}
+      <ul>
+        {% for post in page_obj %}
+          <li>
+            <strong>{{ post.title }}</strong>
+            — {{ post.created_at|date:"d.m.Y H:i" }}
+            <br>
+            Автор: {{ post.author.user.username }}
+            <br>
+            {{ post.preview }}
+            <br>
+            <a href="{% url 'news:news_detail' pk=post.pk %}">Читать полностью</a>
+          </li>
+          <hr>
+        {% empty %}
+          <p>По вашему запросу ничего не найдено.</p>
+        {% endfor %}
+      </ul>
+
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}">« Назад</a>
+        {% endif %}
+
+        <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Вперёд »</a>
+        {% endif %}
+      </div>
+  {% else %}
+      <p>По вашему запросу ничего не найдено.</p>
+  {% endif %}
+</body>
+</html>

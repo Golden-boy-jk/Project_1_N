@@ -8,11 +8,13 @@
 </head>
 <body>
   <h1>Привет в NewsPortal 👋</h1>
+
   <nav>
-    <a href="{% url 'news_list' %}">Все публикации</a> |
-    <a href="{% url 'news_search' %}">Поиск</a> |
+    <a href="{% url 'news:news_list' %}">Все публикации</a> |
+    <a href="{% url 'news:news_search' %}">Поиск</a> |
     <a href="/admin/">Админка</a>
   </nav>
+
   <p>Это учебная главная страница.</p>
 </body>
 </html>
