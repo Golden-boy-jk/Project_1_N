@@ -8,7 +8,7 @@ djangorestframework>=3.15
 # --- Auth ---
 django-allauth>=0.63
 
-# --- Background tasks ---
+# --- Background tasks / i18n ---
 celery>=5.4
 redis>=5.0
 django-modeltranslation>=0.18
@@ -17,8 +17,5 @@ pytz>=2024.1
 # --- Environment variables ---
 django-environ>=0.11
 
-# --- Database ---
-ruff>=0.5
-black>=24.8
-isort>=5.13
-pre-commit>=3.7
+# --- Database driver (если PostgreSQL) ---
+psycopg2-binary>=2.9

@@ -1,2 +1,18 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Django stuff
+*.log
+
+# venv
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+
 .env
 db.sqlite3
