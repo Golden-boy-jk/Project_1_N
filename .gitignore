@@ -1,18 +1,100 @@
-# Python cache
+# --- Python ---
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
 
-# Django stuff
-*.log
+# C extensions
+*.so
 
-# venv
-venv/
-.venv/
+# --- Packaging ---
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# IDE
-.idea/
-.vscode/
-
+# --- Virtual environments ---
 .env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+test-results/
+
+# Translations
+*.mo
+*.pot
+
+# --- Django ---
+*.log
+local_settings.py
 db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/
+*.pid
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Redis dump
+dump.rdb
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+*.env
+.env.*
+!env.example
+
+# SQL dumps
+*.sql
+
+# Docker
+docker-compose.override.yml

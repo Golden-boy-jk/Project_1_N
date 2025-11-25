@@ -1,26 +1,39 @@
+from __future__ import annotations
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import F, Sum
 from django.urls import reverse
+from django.utils.text import Truncator
 
 User = get_user_model()
 
 
-class Author(models.Model):
+# --- Базовая абстрактная модель ---------------------------------------------
+
+
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+# --- Author ------------------------------------------------------------------
+
+
+class Author(TimeStampedModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
     rating = models.IntegerField(default=0)
 
     def update_rating(self):
-        """Быстрая агрегация рейтинга (без N+1 и без странных обходов)."""
-        # Сумма рейтингов постов автора x3
-        posts_aggr = (self.posts.aggregate(total=Sum("rating"))["total"] or 0) * 3
+        """Оптимизированная агрегация рейтинга автора."""
 
-        # Сумма рейтингов его собственных комментариев
+        posts_aggr = (self.posts.aggregate(total=Sum("rating"))["total"] or 0) * 3
         my_comments_aggr = (
             self.user.comments.aggregate(total=Sum("rating"))["total"] or 0
         )
-
-        # Сумма рейтингов всех комментариев под его постами (любыми пользователями)
         under_my_posts_aggr = (
             Comment.objects.filter(post__author=self).aggregate(total=Sum("rating"))[
                 "total"
@@ -35,7 +48,10 @@ class Author(models.Model):
         return f"Автор {self.user}"
 
 
-class Category(models.Model):
+# --- Category ----------------------------------------------------------------
+
+
+class Category(TimeStampedModel):
     name = models.CharField(max_length=128, unique=True)
     subscribers = models.ManyToManyField(
         User, related_name="subscribed_categories", blank=True
@@ -51,25 +67,28 @@ class Category(models.Model):
         return self.name
 
 
-class Post(models.Model):
-    ARTICLE = "AR"
-    NEWS = "NW"
-    POST_TYPES = [
-        (ARTICLE, "Статья"),
-        (NEWS, "Новость"),
-    ]
+# --- Post --------------------------------------------------------------------
 
+
+class PostType(models.TextChoices):
+    ARTICLE = "AR", "Статья"
+    NEWS = "NW", "Новость"
+
+
+class Post(TimeStampedModel):
     author = models.ForeignKey(
         Author, on_delete=models.SET_NULL, null=True, blank=True, related_name="posts"
     )
-    type = models.CharField(max_length=2, choices=POST_TYPES, default=ARTICLE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    categories = models.ManyToManyField(
-        "Category", through="PostCategory", related_name="posts"
+    type = models.CharField(
+        max_length=2, choices=PostType.choices, default=PostType.ARTICLE, db_index=True
     )
     title = models.CharField(max_length=255, db_index=True)
     text = models.TextField()
     rating = models.IntegerField(default=0, db_index=True)
+
+    categories = models.ManyToManyField(
+        "Category", through="PostCategory", related_name="posts"
+    )
 
     class Meta:
         ordering = ("-created_at",)
@@ -79,6 +98,7 @@ class Post(models.Model):
         ]
         indexes = [
             models.Index(fields=["type", "created_at"]),
+            models.Index(fields=["rating"]),
         ]
 
     def __str__(self):
@@ -87,7 +107,7 @@ class Post(models.Model):
     def get_absolute_url(self):
         return reverse("news_detail", args=[str(self.pk)])
 
-    # Без гонок: F-выражения вместо чтения/записи
+    # Без гонок — F-выражения
     def like(self):
         Post.objects.filter(pk=self.pk).update(rating=F("rating") + 1)
         self.refresh_from_db(fields=["rating"])
@@ -96,8 +116,12 @@ class Post(models.Model):
         Post.objects.filter(pk=self.pk).update(rating=F("rating") - 1)
         self.refresh_from_db(fields=["rating"])
 
-    def preview(self, length: int = 124):
-        return (self.text[:length] + "...") if len(self.text) > length else self.text
+    @property
+    def preview(self):
+        return Truncator(self.text).chars(150)
+
+
+# --- PostCategory ------------------------------------------------------------
 
 
 class PostCategory(models.Model):
@@ -109,7 +133,7 @@ class PostCategory(models.Model):
     )
 
     class Meta:
-        unique_together = (("post", "category"),)  # не даём задвоить связь
+        unique_together = (("post", "category"),)
         verbose_name = "Связь пост–категория"
         verbose_name_plural = "Связи пост–категория"
 
@@ -117,12 +141,14 @@ class PostCategory(models.Model):
         return f"{self.post.title} — {self.category.name}"
 
 
-class Comment(models.Model):
+# --- Comment -----------------------------------------------------------------
+
+
+class Comment(TimeStampedModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     text = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    rating = models.IntegerField(default=0)
+    rating = models.IntegerField(default=0, db_index=True)
 
     class Meta:
         ordering = ("-created_at",)
@@ -139,7 +165,10 @@ class Comment(models.Model):
         self.refresh_from_db(fields=["rating"])
 
 
-class UserProfile(models.Model):
+# --- UserProfile -------------------------------------------------------------
+
+
+class UserProfile(TimeStampedModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     timezone = models.CharField(max_length=64, default="Europe/Moscow")
 
