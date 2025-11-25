@@ -11,7 +11,13 @@ router.register(r"articles", ArticleViewSet, basename="articles")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # news-приложение (HTML + API)
+    path("", include("news.urls", namespace="news")),
+
+    # аккаунты (allauth + наше accounts)
+    path("accounts/", include("accounts.urls", namespace="accounts")),
     path("accounts/", include("allauth.urls")),
+
     path("news/", include("news.urls")),  # обычные Django-шаблоны
     path("api/", include(router.urls)),  # DRF API эндпоинты
     path("home/", home, name="home"),  # теперь импорт корректный

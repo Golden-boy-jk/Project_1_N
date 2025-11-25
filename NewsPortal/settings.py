@@ -17,7 +17,7 @@ env = environ.Env(
     STATIC_URL=(str, "/static/"),
     MEDIA_URL=(str, "/media/"),
 )
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))  # .env опционален в DEV
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 DEBUG = env("DEBUG")
 SECRET_KEY = env("SECRET_KEY")
@@ -43,18 +43,15 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
 ]
 
-LOCAL_APPS = ["accounts", "news.apps.NewsConfig"]
-
-INSTALLED_APPS = [
-    *DJANGO_APPS,
-    *THIRD_PARTY_APPS,
-    *LOCAL_APPS,
+LOCAL_APPS = [
+    "accounts",
+    "news.apps.NewsConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 SITE_ID = env.int("SITE_ID")
 
-# ── MIDDLEWARE / TEMPLATES ─────────────────────────────────────────────────────
+# ── MIDDLEWARE ─────────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -86,10 +83,10 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "NewsPortal.wsgi.application"
-# ASGI_APPLICATION = "NewsPortal.asgi.application"  # если нужен ASGI
 
 # ── БАЗА ДАННЫХ ────────────────────────────────────────────────────────────────
 DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES["default"]["ATOMIC_REQUESTS"] = True  # 💎 профессиональная настройка
 
 # ── ПАРОЛИ ─────────────────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
@@ -115,8 +112,8 @@ LOCALE_PATHS = [BASE_DIR / "locale"]
 
 # ── СТАТИКА / МЕДИА ────────────────────────────────────────────────────────────
 STATIC_URL = env("STATIC_URL")
-STATICFILES_DIRS = [BASE_DIR / "static"]  # для dev удобно
-STATIC_ROOT = BASE_DIR / "staticfiles"  # collectstatic (если понадобится)
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = env("MEDIA_URL")
 MEDIA_ROOT = BASE_DIR / "media"
@@ -126,7 +123,6 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 )
-# AUTH_USER_MODEL = "accounts.CustomUser"  # раскомментируй, если используешь
 LOGIN_REDIRECT_URL = "/"
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_EMAIL_REQUIRED = True
@@ -147,21 +143,22 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,
 }
 
-# ── CELERY (DEV) ───────────────────────────────────────────────────────────────
-# Если пока не пользуешься Celery — можно вообще не запускать Redis/Beat.
+# ── CELERY ─────────────────────────────────────────────────────────────────────
 REDIS_URL = env("REDIS_URL")
 CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL.replace("/0", "/1")
+
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
-# ── ПОЧТА (DEV) ────────────────────────────────────────────────────────────────
+# ── ПОЧТА ──────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "dev@example.com"
-SITE_URL = "http://127.0.0.1:8000"
-# ── ЛОГИ (простые для DEV) ─────────────────────────────────────────────────────
+SITE_URL = env("SITE_URL", default="http://127.0.0.1:8000")
+
+# ── ЛОГИ ────────────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

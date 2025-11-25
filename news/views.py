@@ -22,7 +22,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .forms import TimezoneForm
 from .models import Category, Post, PostType
 from .serializers import PostSerializer
-
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Домашняя / общие страницы
@@ -358,7 +358,8 @@ class NewsViewSet(viewsets.ModelViewSet):
     """API: только посты типа 'Новость'."""
 
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+
 
     def get_queryset(self) -> QuerySet[Post]:
         return _post_base_qs().filter(type=PostType.NEWS.value)
@@ -368,7 +369,8 @@ class ArticleViewSet(viewsets.ModelViewSet):
     """API: только посты типа 'Статья'."""
 
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+
 
     def get_queryset(self) -> QuerySet[Post]:
         return _post_base_qs().filter(type=PostType.ARTICLE.value)
@@ -378,7 +380,27 @@ class PostViewSet(viewsets.ModelViewSet):
     """API: все посты."""
 
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+
 
     def get_queryset(self) -> QuerySet[Post]:
         return _post_base_qs()
+
+
+class IsAuthorOrReadOnly(BasePermission):
+    """
+    Читать могут все.
+    Изменять может только автор (через профиль Author) или суперюзер.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        if hasattr(user, "author") and obj.author == user.author:
+            return True
+        return False

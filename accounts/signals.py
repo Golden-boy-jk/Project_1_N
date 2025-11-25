@@ -11,6 +11,7 @@ from django.db.models.signals import post_migrate, post_save
 from django.dispatch import receiver
 from django.template.loader import render_to_string
 from django.urls import reverse
+from news.tasks import send_new_post_notification_email
 
 from news.models import Author, Post  # noqa: F401
 from .utils import generate_activation_link
@@ -83,16 +84,13 @@ def add_permissions_to_authors_group(sender: Any, **kwargs: Any) -> None:
         authors_group.permissions.add(permission)
 
 
-def send_new_post_notification(post: Post, recipient: User) -> None:
-    """Отправляет email-уведомление подписчику о новой статье."""
-    post_url = settings.SITE_URL + reverse("news_detail", args=[post.pk])
-
-    subject = f"Новая статья в категории {post.categories.first().name}"
-    context = {
-        "user": recipient,
-        "post": post,
-        "post_url": post_url,
-    }
+def send_new_post_notification(post, recipient):
+    """
+    Отправляет email-уведомление подписчику о новой статье (асинхронно через Celery).
+    """
+    if not recipient.email:
+        return
+    send_new_post_notification_email.delay(post.id, recipient.id)
 
     html_message = render_to_string("email/new_post_email.html", context)
     plain_message = (
